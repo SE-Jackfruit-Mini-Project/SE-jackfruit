@@ -8,7 +8,7 @@ The Blood Inventory and Availability module provides functionality for maintaini
 
 This module covers:
 
-- Adding blood units
+- Adding blood units to inventory from stock additions other than accepted donations (accepted donations are covered by FR-022)
 - Maintaining available blood units
 - Viewing blood inventory
 - Checking blood availability
@@ -20,7 +20,7 @@ This module covers:
 
 ### FR-023 — Add Blood Units
 
-The system shall allow authorized blood bank staff to add blood units to the inventory.
+The system shall allow authorized blood bank staff to add blood units to the inventory for stock additions other than accepted donations. Inventory increases resulting from accepted donations are handled under FR-022 and shall not be added again under this requirement, so that the same donation is not counted twice.
 
 ### FR-024 — Maintain Available Units by Group/Type
 
@@ -50,7 +50,8 @@ The system shall prevent allocation when the requested quantity exceeds the avai
 
 The following business rules apply:
 
-- Accepted donations increase the appropriate inventory.
+- Accepted donations increase the appropriate inventory, as covered by FR-022.
+- Blood units added under FR-023 are limited to stock additions other than accepted donations; a donation shall not increase inventory under both FR-022 and FR-023.
 - Blood requests must specify the required blood group/type and quantity.
 - Allocation cannot exceed available inventory.
 - Allocation updates inventory.
@@ -72,6 +73,7 @@ The module shall follow:
 | Item | Status |
 |---|---|
 | Exact blood unit attributes | TBD |
+| Types of non-donation stock additions allowed under FR-023 | TBD |
 | Individual unit vs aggregated inventory representation | TBD |
 | Exact blood unit status values | TBD |
 | Blood group/Rh compatibility rules | TBD |
