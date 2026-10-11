@@ -1,11 +1,11 @@
 # SRS Working Contribution — Pavithra Reddy
 
-**Project:** Blood Donation Management System\\
-**Repository:** SE-jackfruit\\
-**Phase:** Sprint 0 — Planning & Requirements Engineering\\
-**Owner:** Pavithra Reddy (PES1UG24CS489)\\
-**Contribution:** External interfaces, Donation and Appointment Management\\
-**Status:** Working draft — team review required
+- **Project:** Blood Donation Management System
+- **Repository:** SE-jackfruit
+- **Phase:** Sprint 0 — Planning & Requirements Engineering
+- **Owner:** Pavithra Reddy (PES1UG24CS489)
+- **Contribution:** External interfaces, Donation and Appointment Management
+- **Status:** Working draft — team review required
 
 > **Baseline alignment:** Functional requirement IDs and intended behavior are retained from the team RE files. Details marked TBD in the source requirements remain open and must be decided by the team. Acceptance criteria in this contribution are proposed verification guidance, not evidence that validation has passed.
 
