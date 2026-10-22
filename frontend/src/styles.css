@@ -122,6 +122,30 @@ button:disabled { cursor: wait; opacity: 0.72; }
 .form-message.success { background: #eaf6ed; color: #23653b; }
 .privacy-note { margin: 20px 0 0; color: #94847c; font-size: 12px; text-align: center; }
 
+.profile-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 28px;
+  background: radial-gradient(ellipse at top left, #f7e6da 0, transparent 46%), #fffaf4;
+}
+.back-link { position: absolute; top: 34px; left: 38px; color: #862f2b; font-size: 13px; font-weight: 700; text-decoration: none; }
+.profile-card { width: min(100%, 500px); padding: 42px; border: 1px solid #efe5dc; border-radius: 24px; background: #fff; box-shadow: 0 22px 70px #5c35220d; }
+.profile-avatar { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 18px; background: #f7e5dc; color: #862f2b; font-family: "Manrope", sans-serif; font-size: 24px; font-weight: 800; }
+.profile-card .eyebrow { margin-top: 26px; }
+.profile-card h1 { font-size: clamp(34px, 5vw, 48px); }
+.profile-intro { margin: 10px 0 25px; color: #81716a; }
+.profile-card form { gap: 10px; }
+.profile-card input[readonly] { background: #faf7f4; color: #81716a; }
+.field-hint { margin: -4px 0 4px; color: #94847c; font-size: 12px; }
+.profile-state { margin-top: 26px; color: #81716a; }
+
+@media (max-width: 560px) {
+  .profile-page { padding: 76px 16px 20px; }
+  .back-link { top: 25px; left: 22px; }
+  .profile-card { padding: 28px 22px; }
+}
+
 @media (max-width: 760px) {
   .page-shell { grid-template-columns: 1fr; padding: 14px; gap: 10px; }
   .intro-panel { min-height: 340px; padding: 28px; }

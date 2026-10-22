@@ -1,5 +1,6 @@
 import express from "express";
 import { authRouter } from "./routes/auth.routes.js";
+import { donorProfileRouter } from "./routes/donor-profile.routes.js";
 
 export const app = express();
 
@@ -8,6 +9,7 @@ app.get("/api/v1/health", (_request, response) => {
   response.json({ status: "ok" });
 });
 app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/donors", donorProfileRouter);
 
 app.use((error, _request, response, _next) => {
   if (error?.type === "entity.parse.failed") {
