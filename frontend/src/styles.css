@@ -1,0 +1,136 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap");
+
+:root {
+  font-family: "DM Sans", sans-serif;
+  color: #302522;
+  background: #fffaf4;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+
+button, input { font: inherit; }
+
+.page-shell {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.92fr) minmax(400px, 1.08fr);
+  min-height: 100vh;
+  padding: 32px;
+  gap: 32px;
+}
+
+.intro-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: clamp(32px, 5vw, 76px);
+  border-radius: 28px;
+  color: #fff9f4;
+  background: #862f2b;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid #ffffff70;
+  border-radius: 15px;
+  font-family: "Manrope", sans-serif;
+  font-size: 25px;
+  font-weight: 800;
+}
+
+.eyebrow {
+  margin: 34px 0 12px;
+  color: #bd786c;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.intro-panel .eyebrow { color: #f0b9a8; }
+
+h1, h2 { font-family: "Manrope", sans-serif; letter-spacing: -0.045em; }
+
+h1 {
+  max-width: 540px;
+  margin: 0;
+  font-size: clamp(42px, 5.2vw, 72px);
+  line-height: 1.04;
+}
+
+.intro-copy { max-width: 370px; color: #f1d5ce; line-height: 1.7; }
+
+.drop-art { position: relative; flex: 1; min-height: 190px; margin-top: 32px; }
+
+.drop {
+  position: absolute;
+  display: block;
+  width: 98px;
+  height: 125px;
+  border-radius: 60% 60% 55% 55%;
+  background: #e77867;
+  transform: rotate(45deg);
+  box-shadow: inset -12px -15px 0 #b84f48;
+}
+
+.drop-one { right: 31%; top: 12%; }
+.drop-two { right: 8%; top: 42%; width: 62px; height: 80px; background: #efad8e; box-shadow: inset -8px -10px 0 #d77a69; }
+.drop-three { right: 58%; top: 56%; width: 47px; height: 61px; background: #bd786c; box-shadow: inset -6px -8px 0 #984c47; }
+.art-caption { position: absolute; bottom: 4px; left: 0; color: #edcfc4; font-size: 13px; }
+
+.form-panel { display: flex; flex-direction: column; justify-content: center; width: min(100%, 520px); margin: auto; padding: 24px; }
+.form-heading .eyebrow { margin-top: 0; }
+h2 { margin: 0; font-size: clamp(30px, 3vw, 42px); }
+.form-heading > p:last-child { margin: 10px 0 28px; color: #81716a; }
+
+form { display: grid; gap: 10px; }
+label { margin-top: 6px; color: #51413b; font-size: 13px; font-weight: 700; }
+input {
+  width: 100%;
+  min-height: 50px;
+  padding: 0 15px;
+  border: 1px solid #e7dcd3;
+  border-radius: 12px;
+  outline: none;
+  background: #fff;
+  color: #302522;
+}
+input::placeholder { color: #b0a19a; }
+input:focus { border-color: #a34941; box-shadow: 0 0 0 3px #a349411a; }
+
+button {
+  min-height: 52px;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 12px;
+  background: #862f2b;
+  color: white;
+  cursor: pointer;
+  font-weight: 700;
+}
+button:hover:not(:disabled) { background: #6e2522; }
+button:disabled { cursor: wait; opacity: 0.72; }
+.form-message { margin: 7px 0 0; padding: 11px 13px; border-radius: 10px; font-size: 13px; }
+.form-message.error { background: #fff0ed; color: #9f2d27; }
+.form-message.success { background: #eaf6ed; color: #23653b; }
+.privacy-note { margin: 20px 0 0; color: #94847c; font-size: 12px; text-align: center; }
+
+@media (max-width: 760px) {
+  .page-shell { grid-template-columns: 1fr; padding: 14px; gap: 10px; }
+  .intro-panel { min-height: 340px; padding: 28px; }
+  .intro-panel .eyebrow { margin-top: 24px; }
+  h1 { max-width: 420px; font-size: clamp(38px, 11vw, 58px); }
+  .drop-art { position: absolute; right: 25px; bottom: 18px; width: 210px; min-height: 130px; margin: 0; opacity: 0.8; }
+  .drop-one { right: 36%; top: 10%; width: 66px; height: 85px; }
+  .drop-two { right: 8%; top: 42%; width: 43px; height: 55px; }
+  .drop-three { right: 68%; top: 60%; width: 34px; height: 44px; }
+  .art-caption { display: none; }
+  .form-panel { padding: 34px 18px; }
+}
