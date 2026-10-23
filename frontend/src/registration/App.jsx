@@ -138,6 +138,8 @@ export function App() {
         <p className="privacy-note">
           Already have an account?{" "}
           <Link to="/login">Log in</Link>
+          <br />
+          <Link to="/eligibility">View donor eligibility information</Link>
         </p>
       </section>
     </main>
