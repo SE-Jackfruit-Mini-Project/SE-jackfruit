@@ -33,13 +33,14 @@ enum BloodGroup {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  fullName      String         @map("full_name") @db.VarChar(120)
-  email         String         @unique @db.VarChar(254)
-  passwordHash  String         @map("password_hash")
-  role          UserRole       @default(DONOR)
-  createdAt     DateTime       @default(now()) @map("created_at")
-  bloodRequests BloodRequest[]
+  id                 String              @id @default(cuid())
+  fullName           String              @map("full_name") @db.VarChar(120)
+  email              String              @unique @db.VarChar(254)
+  passwordHash       String              @map("password_hash")
+  role               UserRole            @default(DONOR)
+  createdAt          DateTime            @default(now()) @map("created_at")
+  bloodRequests      BloodRequest[]
+  inventoryMovements InventoryMovement[]
 
   @@map("users")
 }
@@ -57,6 +58,52 @@ model BloodRequest {
   updatedAt    DateTime      @updatedAt @map("updated_at")
 
   @@map("blood_requests")
+}
+
+enum InventoryStatus {
+  AVAILABLE
+  LOW
+  OUT_OF_STOCK
+}
+
+enum InventoryMovementType {
+  PURCHASE
+  TRANSFER_IN
+  ADJUSTMENT
+  DONATION
+  ALLOCATION
+}
+
+// One row per blood group (aggregated quantity). Status is derived from
+// availableUnits in the service layer; the CHECK (available_units >= 0)
+// constraint is added in the migration.
+model Inventory {
+  id             String              @id @default(cuid())
+  bloodGroup     BloodGroup          @unique @map("blood_group")
+  availableUnits Int                 @default(0) @map("available_units")
+  status         InventoryStatus     @default(OUT_OF_STOCK)
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+  movements      InventoryMovement[]
+
+  @@map("inventory")
+}
+
+// Append-only history of every change to inventory. delta is positive for
+// additions and negative for allocations.
+model InventoryMovement {
+  id          String                @id @default(cuid())
+  inventoryId String                @map("inventory_id")
+  inventory   Inventory             @relation(fields: [inventoryId], references: [id])
+  type        InventoryMovementType
+  delta       Int
+  reason      String?               @db.VarChar(200)
+  referenceId String?               @map("reference_id")
+  actorId     String?               @map("actor_id")
+  actor       User?                 @relation(fields: [actorId], references: [id])
+  createdAt   DateTime              @default(now()) @map("created_at")
+
+  @@index([inventoryId, createdAt])
+  @@map("inventory_movements")
 }
 
 model Session {
