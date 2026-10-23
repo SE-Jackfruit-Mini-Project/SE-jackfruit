@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export function Dashboard() {
   const [user, setUser] = useState(null);
@@ -49,6 +49,9 @@ export function Dashboard() {
       <p style={{ color: "#81716a", fontSize: 14 }}>
         Role: <strong>{user?.role}</strong>
       </p>
+      {user?.role === "DONOR" && (
+        <Link className="dashboard-profile-link" to="/profile">View or update your donor profile</Link>
+      )}
     </main>
   );
 }

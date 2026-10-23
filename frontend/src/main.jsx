@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { App as RegisterPage } from "./registration/App.jsx";
 import { LoginPage } from "./login/LoginPage.jsx";
 import { Dashboard } from "./dashboard/Dashboard.jsx";
+import { ProfilePage } from "./profile/ProfilePage.jsx";
 import "./styles.css";
 
 createRoot(document.getElementById("root")).render(
@@ -13,6 +14,7 @@ createRoot(document.getElementById("root")).render(
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
