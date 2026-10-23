@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { BloodRequests } from "../requests/BloodRequests.jsx";
 
 export function Dashboard() {
@@ -86,8 +86,12 @@ export function Dashboard() {
             You are currently logged in as a <strong>{user?.role}</strong>. Your donor profile,
             appointment booking, and donation history are available in the respective donor modules.
           </p>
+          {user?.role === "DONOR" && (
+            <Link className="dashboard-profile-link" to="/profile">
+              View or update your donor profile
+            </Link>
+          )}
         </section>
-      )}
     </main>
   );
 }
