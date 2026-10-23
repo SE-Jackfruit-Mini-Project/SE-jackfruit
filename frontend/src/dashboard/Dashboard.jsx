@@ -87,11 +87,17 @@ export function Dashboard() {
             appointment booking, and donation history are available in the respective donor modules.
           </p>
           {user?.role === "DONOR" && (
-            <Link className="dashboard-profile-link" to="/profile">
-              View or update your donor profile
-            </Link>
+            <div className="dashboard-donor-links">
+              <Link className="dashboard-profile-link" to="/profile">
+                View or update your donor profile
+              </Link>
+              <Link className="dashboard-profile-link" to="/eligibility">
+                View donor eligibility information
+              </Link>
+            </div>
           )}
         </section>
+      )}
     </main>
   );
 }
