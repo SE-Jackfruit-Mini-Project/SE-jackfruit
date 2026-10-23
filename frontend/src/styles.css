@@ -123,6 +123,7 @@ button:disabled { cursor: wait; opacity: 0.72; }
 .privacy-note { margin: 20px 0 0; color: #94847c; font-size: 12px; text-align: center; }
 .dashboard-profile-link { display: inline-flex; margin-top: 16px; color: #862f2b; font-weight: 700; text-decoration: none; }
 .dashboard-profile-link:hover { text-decoration: underline; }
+.dashboard-donor-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 22px; }
 
 .profile-page {
   display: grid;
@@ -140,6 +141,38 @@ button:disabled { cursor: wait; opacity: 0.72; }
 .profile-card input[readonly] { background: #faf7f4; color: #81716a; }
 .field-hint { margin: -4px 0 4px; color: #94847c; font-size: 12px; }
 .profile-state { margin-top: 26px; color: #81716a; }
+
+.eligibility-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 32px 24px;
+  background: radial-gradient(ellipse at top left, #f7e6da 0, transparent 46%), #fffaf4;
+}
+.eligibility-card {
+  width: min(100%, 680px);
+  padding: clamp(28px, 6vw, 52px);
+  border: 1px solid #efe5dc;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 22px 70px #5c35220d;
+}
+.eligibility-card .eyebrow { margin: 0 0 12px; }
+.eligibility-card h1 { font-size: clamp(34px, 5vw, 48px); }
+.eligibility-intro { margin: 12px 0 26px; color: #81716a; line-height: 1.7; }
+.eligibility-unavailable {
+  padding: 20px;
+  border: 1px solid #f0d9ca;
+  border-radius: 16px;
+  background: #fff8f2;
+}
+.eligibility-unavailable h2 { font-size: 20px; letter-spacing: -0.02em; }
+.eligibility-unavailable p { margin: 10px 0 0; color: #51413b; line-height: 1.65; }
+.eligibility-note { margin: 18px 0 0; color: #81716a; font-size: 13px; line-height: 1.6; }
+.eligibility-links { display: flex; flex-wrap: wrap; gap: 12px 22px; margin-top: 26px; }
+.eligibility-links a { color: #862f2b; font-weight: 700; text-decoration: none; }
+.eligibility-links a:hover { text-decoration: underline; }
+.eligibility-links a:focus-visible { outline: 3px solid #a34941; outline-offset: 4px; }
 
 @media (max-width: 560px) {
   .profile-page { padding: 76px 16px 20px; }
