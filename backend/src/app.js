@@ -2,6 +2,7 @@ import express from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { authRouter } from "./routes/auth.routes.js";
+import { requestRouter } from "./routes/request.routes.js";
 
 const PgStore = connectPgSimple(session);
 
@@ -34,6 +35,7 @@ app.get("/api/v1/health", (_request, response) => {
 });
 
 app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/requests", requestRouter);
 
 app.use((error, _request, response, _next) => {
   if (error?.type === "entity.parse.failed") {
