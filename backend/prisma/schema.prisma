@@ -14,13 +14,56 @@ enum UserRole {
   ADMIN
 }
 
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ALLOCATED
+}
+
+enum BloodGroup {
+  A_POSITIVE
+  A_NEGATIVE
+  B_POSITIVE
+  B_NEGATIVE
+  AB_POSITIVE
+  AB_NEGATIVE
+  O_POSITIVE
+  O_NEGATIVE
+}
+
 model User {
-  id           String   @id @default(cuid())
-  fullName     String   @map("full_name") @db.VarChar(120)
-  email        String   @unique @db.VarChar(254)
-  passwordHash String   @map("password_hash")
-  role         UserRole @default(DONOR)
-  createdAt    DateTime @default(now()) @map("created_at")
+  id            String         @id @default(cuid())
+  fullName      String         @map("full_name") @db.VarChar(120)
+  email         String         @unique @db.VarChar(254)
+  passwordHash  String         @map("password_hash")
+  role          UserRole       @default(DONOR)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  bloodRequests BloodRequest[]
 
   @@map("users")
+}
+
+model BloodRequest {
+  id           String        @id @default(cuid())
+  requesterId  String        @map("requester_id")
+  requester    User          @relation(fields: [requesterId], references: [id])
+  hospitalName String        @map("hospital_name") @db.VarChar(150)
+  bloodGroup   BloodGroup    @map("blood_group")
+  units        Int
+  urgency      String        @default("NORMAL") @db.VarChar(20)
+  status       RequestStatus @default(PENDING)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  @@map("blood_requests")
+}
+
+model Session {
+  sid    String   @id @db.VarChar
+  sess   Json     @db.Json
+  expire DateTime @db.Timestamp(6)
+
+  @@index([expire], map: "IDX_session_expire")
+  @@map("sessions")
 }
