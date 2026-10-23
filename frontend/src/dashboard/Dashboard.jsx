@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { BloodRequests } from "../requests/BloodRequests.jsx";
 
 export function Dashboard() {
   const [user, setUser] = useState(null);
@@ -25,30 +26,68 @@ export function Dashboard() {
   if (loading) return null;
 
   return (
-    <main style={{ padding: "48px", fontFamily: "DM Sans, sans-serif", maxWidth: 640, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2 style={{ fontFamily: "Manrope, sans-serif", margin: 0 }}>Dashboard</h2>
+    <main style={{ padding: "40px 24px", fontFamily: "DM Sans, sans-serif", maxWidth: "860px", margin: "0 auto" }}>
+      <header
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          background: "#fff",
+          padding: "20px 28px",
+          borderRadius: "16px",
+          border: "1px solid #e7dcd3",
+        }}
+      >
+        <div>
+          <h2 style={{ fontFamily: "Manrope, sans-serif", margin: 0, fontSize: "24px" }}>
+            {user?.role === "HOSPITAL_REQUESTER" ? "Hospital Portal" : "Dashboard"}
+          </h2>
+          <p style={{ margin: "4px 0 0", color: "#81716a", fontSize: "14px" }}>
+            Signed in as <strong>{user?.fullName}</strong> ({user?.email}) &bull;{" "}
+            <span style={{ fontWeight: "bold", color: "#862f2b" }}>{user?.role}</span>
+          </p>
+        </div>
         <button
           onClick={handleLogout}
           style={{
-            padding: "10px 20px",
+            padding: "8px 18px",
+            minHeight: "auto",
             background: "#862f2b",
             color: "#fff",
             border: 0,
-            borderRadius: 10,
+            borderRadius: "10px",
             cursor: "pointer",
             fontWeight: 700,
+            fontSize: "14px",
           }}
         >
           Log out
         </button>
-      </div>
-      <p style={{ marginTop: 24, color: "#51413b" }}>
-        Welcome, <strong>{user?.fullName}</strong>
-      </p>
-      <p style={{ color: "#81716a", fontSize: 14 }}>
-        Role: <strong>{user?.role}</strong>
-      </p>
+      </header>
+
+      {/* Hospital Requester features: Submit and track blood requests */}
+      {user?.role === "HOSPITAL_REQUESTER" ? (
+        <BloodRequests />
+      ) : (
+        <section
+          style={{
+            marginTop: "32px",
+            background: "#fff",
+            padding: "32px",
+            borderRadius: "16px",
+            border: "1px solid #e7dcd3",
+            textAlign: "center",
+          }}
+        >
+          <h3 style={{ fontFamily: "Manrope, sans-serif", margin: "0 0 12px" }}>
+            Welcome, {user?.fullName}!
+          </h3>
+          <p style={{ color: "#81716a", maxWidth: "480px", margin: "0 auto", lineHeight: 1.6 }}>
+            You are currently logged in as a <strong>{user?.role}</strong>. Your donor profile,
+            appointment booking, and donation history are available in the respective donor modules.
+          </p>
+        </section>
+      )}
     </main>
   );
 }
