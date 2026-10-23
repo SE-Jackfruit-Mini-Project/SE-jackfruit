@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 
 const initialValues = { fullName: "", email: "", password: "", confirmPassword: "" };
 
@@ -6,6 +7,7 @@ export function App() {
   const [values, setValues] = useState(initialValues);
   const [message, setMessage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const navigate = useNavigate();
 
   function updateField(event) {
     setValues((current) => ({ ...current, [event.target.name]: event.target.value }));
@@ -41,8 +43,7 @@ export function App() {
         return;
       }
 
-      setValues(initialValues);
-      setMessage({ type: "success", text: result.message });
+      navigate("/login");
     } catch {
       setMessage({ type: "error", text: "We could not reach the service. Please try again." });
     } finally {
@@ -134,7 +135,10 @@ export function App() {
           </button>
         </form>
 
-        <p className="privacy-note">Your password is securely protected.</p>
+        <p className="privacy-note">
+          Already have an account?{" "}
+          <Link to="/login">Log in</Link>
+        </p>
       </section>
     </main>
   );
