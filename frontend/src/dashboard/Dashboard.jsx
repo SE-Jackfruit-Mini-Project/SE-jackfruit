@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BloodRequests } from "../requests/BloodRequests.jsx";
 import { ManageSlots } from "../slots/ManageSlots.jsx";
+import { BookAppointment } from "../appointments/BookAppointment.jsx";
 
 export function Dashboard() {
   const [user, setUser] = useState(null);
@@ -76,34 +77,37 @@ export function Dashboard() {
       ) : user?.role === "STAFF" || user?.role === "ADMIN" ? (
         <ManageSlots />
       ) : (
-        <section
-          style={{
-            marginTop: "32px",
-            background: "#fff",
-            padding: "32px",
-            borderRadius: "16px",
-            border: "1px solid #e7dcd3",
-            textAlign: "center",
-          }}
-        >
-          <h3 style={{ fontFamily: "Manrope, sans-serif", margin: "0 0 12px" }}>
-            Welcome, {user?.fullName}!
-          </h3>
-          <p style={{ color: "#81716a", maxWidth: "480px", margin: "0 auto", lineHeight: 1.6 }}>
-            You are currently logged in as a <strong>{user?.role}</strong>. Your donor profile,
-            appointment booking, and donation history are available in the respective donor modules.
-          </p>
-          {user?.role === "DONOR" && (
-            <div className="dashboard-donor-links">
-              <Link className="dashboard-profile-link" to="/profile">
-                View or update your donor profile
-              </Link>
-              <Link className="dashboard-profile-link" to="/eligibility">
-                View donor eligibility information
-              </Link>
-            </div>
-          )}
-        </section>
+        <>
+          <section
+            style={{
+              marginTop: "32px",
+              background: "#fff",
+              padding: "32px",
+              borderRadius: "16px",
+              border: "1px solid #e7dcd3",
+              textAlign: "center",
+            }}
+          >
+            <h3 style={{ fontFamily: "Manrope, sans-serif", margin: "0 0 12px" }}>
+              Welcome, {user?.fullName}!
+            </h3>
+            <p style={{ color: "#81716a", maxWidth: "480px", margin: "0 auto", lineHeight: 1.6 }}>
+              You are currently logged in as a <strong>{user?.role}</strong>. Your donor profile,
+              appointment booking, and donation history are available in the respective donor modules.
+            </p>
+            {user?.role === "DONOR" && (
+              <div className="dashboard-donor-links">
+                <Link className="dashboard-profile-link" to="/profile">
+                  View or update your donor profile
+                </Link>
+                <Link className="dashboard-profile-link" to="/eligibility">
+                  View donor eligibility information
+                </Link>
+              </div>
+            )}
+          </section>
+          {user?.role === "DONOR" && <BookAppointment />}
+        </>
       )}
     </main>
   );
