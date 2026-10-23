@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BloodRequests } from "../requests/BloodRequests.jsx";
+import { ManageSlots } from "../slots/ManageSlots.jsx";
 
 export function Dashboard() {
   const [user, setUser] = useState(null);
@@ -40,7 +41,11 @@ export function Dashboard() {
       >
         <div>
           <h2 style={{ fontFamily: "Manrope, sans-serif", margin: 0, fontSize: "24px" }}>
-            {user?.role === "HOSPITAL_REQUESTER" ? "Hospital Portal" : "Dashboard"}
+            {user?.role === "HOSPITAL_REQUESTER"
+              ? "Hospital Portal"
+              : user?.role === "STAFF" || user?.role === "ADMIN"
+              ? "Staff Portal"
+              : "Dashboard"}
           </h2>
           <p style={{ margin: "4px 0 0", color: "#81716a", fontSize: "14px" }}>
             Signed in as <strong>{user?.fullName}</strong> ({user?.email}) &bull;{" "}
@@ -68,6 +73,8 @@ export function Dashboard() {
       {/* Hospital Requester features: Submit and track blood requests */}
       {user?.role === "HOSPITAL_REQUESTER" ? (
         <BloodRequests />
+      ) : user?.role === "STAFF" || user?.role === "ADMIN" ? (
+        <ManageSlots />
       ) : (
         <section
           style={{
