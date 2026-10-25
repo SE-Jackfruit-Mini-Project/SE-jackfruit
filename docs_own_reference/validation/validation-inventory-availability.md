@@ -44,7 +44,13 @@ Validate staff inventory updates, inventory grouping, viewing inventory, checkin
 
 | Requirement ID | Finding / question | Severity | Resolution / decision | Status |
 |---|---|---|---|---|
-|  |  |  |  | Open |
+| FR-024, FR-027 | Individual unit vs aggregated inventory representation was TBD. | High | Aggregated quantity: one inventory row per blood group, plus an append-only `InventoryMovement` log for history. | Resolved (proposed, pending team confirmation) |
+| FR-027 | Blood unit status values and transitions were TBD. | Medium | Status is derived from available units: `AVAILABLE`, `LOW`, `OUT_OF_STOCK`. No manually set transitions. The LOW threshold remains TBD. | Resolved (proposed, pending team confirmation) |
+| FR-023 | Types of non-donation stock additions were TBD. | Medium | `PURCHASE`, `TRANSFER_IN`, `ADJUSTMENT`. Donations are recorded only through FR-022 (movement type `DONATION`) and never through FR-023. | Resolved (proposed, pending team confirmation) |
+| FR-029 | Simultaneous or repeated allocation attempts could produce inconsistent quantities. | High | Allocation uses an atomic conditional decrement (`available_units >= requested`) inside a database transaction, with a `CHECK (available_units >= 0)` constraint. | Resolved (proposed, pending team confirmation) |
+| FR-028, FR-039 | Both describe the inventory update after allocation. | Medium | FR-028 owns the inventory update; FR-039 refers to FR-028. Neither requirement is deleted or renumbered. | Resolved (proposed, pending team confirmation) |
+| FR-024 | Historical inventory requirements were TBD. | Low | Movement log retained; retention period and reporting remain TBD. | Open |
+| NFR-001, NFR-002 | Measurable performance/concurrency targets are not agreed. | Medium | Kept explicitly TBD. | Open |
 
 ## Acceptance criteria
 - All assigned requirements have been checked against the validation checklist.
