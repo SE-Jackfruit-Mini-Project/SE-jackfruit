@@ -41,6 +41,8 @@ model User {
   createdAt          DateTime            @default(now()) @map("created_at")
   bloodRequests      BloodRequest[]
   inventoryMovements InventoryMovement[]
+  donationsAsDonor   Donation[]          @relation("DonationDonor")
+  donationsRecorded  Donation[]          @relation("DonationRecorder")
 
   @@map("users")
 }
@@ -74,9 +76,6 @@ enum InventoryMovementType {
   ALLOCATION
 }
 
-// One row per blood group (aggregated quantity). Status is derived from
-// availableUnits in the service layer; the CHECK (available_units >= 0)
-// constraint is added in the migration.
 model Inventory {
   id             String              @id @default(cuid())
   bloodGroup     BloodGroup          @unique @map("blood_group")
@@ -88,22 +87,38 @@ model Inventory {
   @@map("inventory")
 }
 
-// Append-only history of every change to inventory. delta is positive for
-// additions and negative for allocations.
 model InventoryMovement {
-  id          String                @id @default(cuid())
-  inventoryId String                @map("inventory_id")
-  inventory   Inventory             @relation(fields: [inventoryId], references: [id])
+  id          String               @id @default(cuid())
+  inventoryId String               @map("inventory_id")
+  inventory   Inventory            @relation(fields: [inventoryId], references: [id])
   type        InventoryMovementType
   delta       Int
-  reason      String?               @db.VarChar(200)
-  referenceId String?               @map("reference_id")
-  actorId     String?               @map("actor_id")
-  actor       User?                 @relation(fields: [actorId], references: [id])
-  createdAt   DateTime              @default(now()) @map("created_at")
+  reason      String?              @db.VarChar(200)
+  referenceId String?              @map("reference_id")
+  actorId     String?              @map("actor_id")
+  actor       User?                @relation(fields: [actorId], references: [id])
+  createdAt   DateTime             @default(now()) @map("created_at")
 
   @@index([inventoryId, createdAt])
   @@map("inventory_movements")
+}
+
+model Donation {
+  id           String     @id @default(cuid())
+  donorId      String     @map("donor_id")
+  donor        User       @relation("DonationDonor", fields: [donorId], references: [id])
+  recordedById String     @map("recorded_by_id")
+  recordedBy   User       @relation("DonationRecorder", fields: [recordedById], references: [id])
+  bloodGroup   BloodGroup @map("blood_group")
+  units        Int
+  donationDate DateTime   @map("donation_date") @db.Date
+  accepted     Boolean    @default(false)
+  notes        String?    @db.VarChar(255)
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@index([donorId, donationDate])
+  @@index([bloodGroup, donationDate])
+  @@map("donations")
 }
 
 model Session {
@@ -114,7 +129,6 @@ model Session {
   @@index([expire], map: "IDX_session_expire")
   @@map("sessions")
 }
-
 
 model AppointmentSlot {
   id          String   @id @default(cuid())
