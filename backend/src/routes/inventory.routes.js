@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { requireAuth, requireRole } from "../middleware/auth.middleware.js";
-import { addStock } from "../services/inventory.service.js";
+import { addStock, getAvailability } from "../services/inventory.service.js";
 
 export const inventoryRouter = Router();
 
@@ -22,3 +22,18 @@ inventoryRouter.post("/stock", requireAuth, requireRole("STAFF", "ADMIN"), async
     return next(error);
   }
 });
+
+// FR-025 & FR-026: View blood availability by blood group (read-only)
+inventoryRouter.get(
+  "/availability",
+  requireAuth,
+  requireRole("HOSPITAL_REQUESTER", "STAFF", "ADMIN"),
+  async (_request, response, next) => {
+    try {
+      const availability = await getAvailability();
+      return response.status(200).json({ availability });
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
