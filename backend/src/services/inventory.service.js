@@ -69,3 +69,21 @@ export async function addStock(actorId, input) {
     };
   });
 }
+
+// FR-025, FR-026: read-only availability for every blood group. Groups with no
+// inventory row are reported as zero so the view always lists all eight.
+export async function getAvailability() {
+  const rows = await prisma.inventory.findMany({
+    select: { bloodGroup: true, availableUnits: true, status: true },
+  });
+  const byGroup = new Map(rows.map((row) => [row.bloodGroup, row]));
+
+  return Object.values(BloodGroup).map((bloodGroup) => {
+    const row = byGroup.get(bloodGroup);
+    return {
+      bloodGroup,
+      availableUnits: row?.availableUnits ?? 0,
+      status: row?.status ?? "OUT_OF_STOCK",
+    };
+  });
+}
