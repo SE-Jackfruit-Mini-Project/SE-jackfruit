@@ -101,21 +101,33 @@ export function Dashboard() {
         </button>
       </header>
 
-      {/* Hospital requester features */}
       {user?.role === "HOSPITAL_REQUESTER" ? (
-        <div style={{ marginTop: "32px", display: "grid", gap: "0" }}>
+        <div
+          style={{
+            marginTop: "32px",
+            display: "grid",
+            gap: "0",
+          }}
+        >
           <BloodAvailability />
           <BloodRequests />
         </div>
       ) : user?.role === "STAFF" || user?.role === "ADMIN" ? (
-        <div style={{ marginTop: "32px", display: "grid", gap: "28px" }}>
+        <div
+          style={{
+            marginTop: "32px",
+            display: "grid",
+            gap: "28px",
+          }}
+        >
           <BloodAvailability refreshKey={inventoryVersion} />
-          <StockEntry onAdded={() => setInventoryVersion((v) => v + 1)} />
+          <StockEntry
+            onAdded={() => setInventoryVersion((version) => version + 1)}
+          />
           <ManageSlots />
         </div>
       ) : (
         <>
-          {/* Donor dashboard welcome section */}
           <section
             style={{
               marginTop: "32px",
@@ -143,10 +155,9 @@ export function Dashboard() {
                 lineHeight: 1.6,
               }}
             >
-              You are currently logged in as a{" "}
-              <strong>{user?.role}</strong>. Your donor profile, appointment
-              booking, and donation history are available in the respective
-              donor modules.
+              You are currently logged in as <strong>{user?.role}</strong>. Your
+              donor profile, appointment booking, and donation history are
+              available in the respective donor modules.
             </p>
 
             {user?.role === "DONOR" && (
@@ -162,7 +173,6 @@ export function Dashboard() {
             )}
           </section>
 
-          {/* US-004: Donors can book available donation appointments */}
           {user?.role === "DONOR" && <BookAppointment />}
         </>
       )}
