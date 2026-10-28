@@ -1,11 +1,16 @@
+
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BloodRequests } from "../requests/BloodRequests.jsx";
 import { ManageSlots } from "../slots/ManageSlots.jsx";
+import { StockEntry } from "../inventory/StockEntry.jsx";
+import { BloodAvailability } from "../inventory/BloodAvailability.jsx";
+import { ManageAppointments } from "../appointments/ManageAppointments.jsx";
 
 export function Dashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [inventoryVersion, setInventoryVersion] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,14 +25,24 @@ export function Dashboard() {
   }, [navigate]);
 
   async function handleLogout() {
-    await fetch("/api/v1/auth/logout", { method: "POST", credentials: "include" });
+    await fetch("/api/v1/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    });
     navigate("/login");
   }
 
   if (loading) return null;
 
   return (
-    <main style={{ padding: "40px 24px", fontFamily: "DM Sans, sans-serif", maxWidth: "860px", margin: "0 auto" }}>
+    <main
+      style={{
+        padding: "40px 24px",
+        fontFamily: "DM Sans, sans-serif",
+        maxWidth: "860px",
+        margin: "0 auto",
+      }}
+    >
       <header
         style={{
           display: "flex",
@@ -40,18 +55,34 @@ export function Dashboard() {
         }}
       >
         <div>
-          <h2 style={{ fontFamily: "Manrope, sans-serif", margin: 0, fontSize: "24px" }}>
+          <h2
+            style={{
+              fontFamily: "Manrope, sans-serif",
+              margin: 0,
+              fontSize: "24px",
+            }}
+          >
             {user?.role === "HOSPITAL_REQUESTER"
               ? "Hospital Portal"
               : user?.role === "STAFF" || user?.role === "ADMIN"
               ? "Staff Portal"
               : "Dashboard"}
           </h2>
-          <p style={{ margin: "4px 0 0", color: "#81716a", fontSize: "14px" }}>
+
+          <p
+            style={{
+              margin: "4px 0 0",
+              color: "#81716a",
+              fontSize: "14px",
+            }}
+          >
             Signed in as <strong>{user?.fullName}</strong> ({user?.email}) &bull;{" "}
-            <span style={{ fontWeight: "bold", color: "#862f2b" }}>{user?.role}</span>
+            <span style={{ fontWeight: "bold", color: "#862f2b" }}>
+              {user?.role}
+            </span>
           </p>
         </div>
+
         <button
           onClick={handleLogout}
           style={{
@@ -70,40 +101,82 @@ export function Dashboard() {
         </button>
       </header>
 
-      {/* Hospital Requester features: Submit and track blood requests */}
       {user?.role === "HOSPITAL_REQUESTER" ? (
-        <BloodRequests />
-      ) : user?.role === "STAFF" || user?.role === "ADMIN" ? (
-        <ManageSlots />
-      ) : (
-        <section
+        <div
           style={{
             marginTop: "32px",
-            background: "#fff",
-            padding: "32px",
-            borderRadius: "16px",
-            border: "1px solid #e7dcd3",
-            textAlign: "center",
+            display: "grid",
+            gap: "0",
           }}
         >
-          <h3 style={{ fontFamily: "Manrope, sans-serif", margin: "0 0 12px" }}>
-            Welcome, {user?.fullName}!
-          </h3>
-          <p style={{ color: "#81716a", maxWidth: "480px", margin: "0 auto", lineHeight: 1.6 }}>
-            You are currently logged in as a <strong>{user?.role}</strong>. Your donor profile,
-            appointment booking, and donation history are available in the respective donor modules.
-          </p>
-          {user?.role === "DONOR" && (
-            <div className="dashboard-donor-links">
-              <Link className="dashboard-profile-link" to="/profile">
-                View or update your donor profile
-              </Link>
-              <Link className="dashboard-profile-link" to="/eligibility">
-                View donor eligibility information
-              </Link>
-            </div>
-          )}
-        </section>
+          <BloodAvailability />
+          <BloodRequests />
+        </div>
+      ) : user?.role === "STAFF" || user?.role === "ADMIN" ? (
+        <div
+          style={{
+            marginTop: "32px",
+            display: "grid",
+            gap: "28px",
+          }}
+        >
+          <BloodAvailability refreshKey={inventoryVersion} />
+          <StockEntry
+            onAdded={() =>
+              setInventoryVersion((version) => version + 1)
+            }
+          />
+          <ManageSlots />
+        </div>
+      ) : (
+        <>
+          <section
+            style={{
+              marginTop: "32px",
+              background: "#fff",
+              padding: "32px",
+              borderRadius: "16px",
+              border: "1px solid #e7dcd3",
+              textAlign: "center",
+            }}
+          >
+            <h3
+              style={{
+                fontFamily: "Manrope, sans-serif",
+                margin: "0 0 12px",
+              }}
+            >
+              Welcome, {user?.fullName}!
+            </h3>
+
+            <p
+              style={{
+                color: "#81716a",
+                maxWidth: "480px",
+                margin: "0 auto",
+                lineHeight: 1.6,
+              }}
+            >
+              You are currently logged in as <strong>{user?.role}</strong>. Your
+              donor profile, appointment booking, and donation history are
+              available in the respective donor modules.
+            </p>
+
+            {user?.role === "DONOR" && (
+              <div className="dashboard-donor-links">
+                <Link className="dashboard-profile-link" to="/profile">
+                  View or update your donor profile
+                </Link>
+
+                <Link className="dashboard-profile-link" to="/eligibility">
+                  View donor eligibility information
+                </Link>
+              </div>
+            )}
+          </section>
+
+          {user?.role === "DONOR" && <ManageAppointments />}
+        </>
       )}
     </main>
   );
