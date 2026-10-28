@@ -31,8 +31,22 @@ const tx = {
   },
 };
 
+let failReads = false;
+
 jest.unstable_mockModule("../src/utils/prisma.js", () => ({
-  prisma: { $transaction: async (callback) => callback(tx) },
+  prisma: {
+    $transaction: async (callback) => callback(tx),
+    inventory: {
+      findMany: async () => {
+        if (failReads) throw new Error("database unavailable");
+        return [...rows.values()].map(({ bloodGroup, availableUnits, status }) => ({
+          bloodGroup,
+          availableUnits,
+          status,
+        }));
+      },
+    },
+  },
 }));
 
 const { inventoryRouter } = await import("../src/routes/inventory.routes.js");
@@ -53,6 +67,7 @@ const staff = { id: "u-staff", role: "STAFF" };
 const validEntry = { bloodGroup: "A_POSITIVE", units: 10, type: "PURCHASE" };
 
 beforeEach(() => {
+  failReads = false;
   rows.clear();
   movements.length = 0;
 });
@@ -131,5 +146,54 @@ describe("POST /api/v1/inventory/stock", () => {
     expect(response.body.errors.map((e) => e.field)).toContain(field);
     expect(rows.size).toBe(0);
     expect(movements).toHaveLength(0);
+  });
+});
+
+describe("GET /api/v1/inventory/availability", () => {
+  const get = (user) => request(appWithUser(user)).get("/api/v1/inventory/availability");
+
+  test("rejects unauthenticated users with 401", async () => {
+    expect((await get(null)).status).toBe(401);
+  });
+
+  test("rejects donors with 403", async () => {
+    expect((await get({ id: "u", role: "DONOR" })).status).toBe(403);
+  });
+
+  test.each(["HOSPITAL_REQUESTER", "STAFF", "ADMIN"])("allows %s", async (role) => {
+    expect((await get({ id: "u", role })).status).toBe(200);
+  });
+
+  test("lists all eight blood groups with zero stock when inventory is empty", async () => {
+    const response = await get(staff);
+    expect(response.body.availability).toHaveLength(8);
+    expect(response.body.availability.every((r) => r.availableUnits === 0 && r.status === "OUT_OF_STOCK")).toBe(true);
+  });
+
+  test("shows stored quantities and zero for groups without a row", async () => {
+    rows.set("O_NEGATIVE", { id: "i1", bloodGroup: "O_NEGATIVE", availableUnits: 12, status: "AVAILABLE" });
+    rows.set("B_POSITIVE", { id: "i2", bloodGroup: "B_POSITIVE", availableUnits: 3, status: "LOW" });
+    const { availability } = (await get(staff)).body;
+    const find = (group) => availability.find((r) => r.bloodGroup === group);
+    expect(find("O_NEGATIVE")).toEqual({ bloodGroup: "O_NEGATIVE", availableUnits: 12, status: "AVAILABLE" });
+    expect(find("B_POSITIVE")).toMatchObject({ availableUnits: 3, status: "LOW" });
+    expect(find("A_POSITIVE")).toMatchObject({ availableUnits: 0, status: "OUT_OF_STOCK" });
+  });
+
+  test("does not change stock quantities", async () => {
+    rows.set("O_NEGATIVE", { id: "i1", bloodGroup: "O_NEGATIVE", availableUnits: 12, status: "AVAILABLE" });
+    await get(staff);
+    await get(staff);
+    expect(rows.get("O_NEGATIVE").availableUnits).toBe(12);
+    expect(movements).toHaveLength(0);
+  });
+
+  test("returns 500 with a message when inventory cannot be read", async () => {
+    failReads = true;
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    const app = appWithUser(staff);
+    app.use((error, _req, res, _next) => res.status(500).json({ message: "The request could not be completed." }));
+    const response = await request(app).get("/api/v1/inventory/availability");
+    expect(response.status).toBe(500);
   });
 });
