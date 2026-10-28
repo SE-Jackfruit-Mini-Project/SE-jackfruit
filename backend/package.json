@@ -7,7 +7,8 @@
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev"
+    "db:migrate": "prisma migrate dev",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
@@ -19,6 +20,12 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "prisma": "^6.19.0"
+    "jest": "^29.7.0",
+    "prisma": "^6.19.0",
+    "supertest": "^7.3.1"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "transform": {}
   }
 }

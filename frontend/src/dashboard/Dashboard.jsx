@@ -4,10 +4,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { BloodRequests } from "../requests/BloodRequests.jsx";
 import { ManageSlots } from "../slots/ManageSlots.jsx";
 import { BookAppointment } from "../appointments/BookAppointment.jsx";
+import { StockEntry } from "../inventory/StockEntry.jsx";
+import { BloodAvailability } from "../inventory/BloodAvailability.jsx";
 
 export function Dashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [inventoryVersion, setInventoryVersion] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -100,9 +103,16 @@ export function Dashboard() {
 
       {/* Hospital requester features */}
       {user?.role === "HOSPITAL_REQUESTER" ? (
-        <BloodRequests />
+        <div style={{ marginTop: "32px", display: "grid", gap: "0" }}>
+          <BloodAvailability />
+          <BloodRequests />
+        </div>
       ) : user?.role === "STAFF" || user?.role === "ADMIN" ? (
-        <ManageSlots />
+        <div style={{ marginTop: "32px", display: "grid", gap: "28px" }}>
+          <BloodAvailability refreshKey={inventoryVersion} />
+          <StockEntry onAdded={() => setInventoryVersion((v) => v + 1)} />
+          <ManageSlots />
+        </div>
       ) : (
         <>
           {/* Donor dashboard welcome section */}
