@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BloodRequests } from "../requests/BloodRequests.jsx";
@@ -101,13 +102,7 @@ export function Dashboard() {
       </header>
 
       {user?.role === "HOSPITAL_REQUESTER" ? (
-        <div
-          style={{
-            marginTop: "32px",
-            display: "grid",
-            gap: "0",
-          }}
-        >
+        <div style={{ marginTop: "32px", display: "grid", gap: "0" }}>
           <BloodAvailability />
           <BloodRequests />
         </div>
