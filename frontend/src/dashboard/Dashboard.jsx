@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BloodRequests } from "../requests/BloodRequests.jsx";
 import { ManageSlots } from "../slots/ManageSlots.jsx";
+import { StockEntry } from "../inventory/StockEntry.jsx";
 
 export function Dashboard() {
   const [user, setUser] = useState(null);
@@ -74,7 +75,10 @@ export function Dashboard() {
       {user?.role === "HOSPITAL_REQUESTER" ? (
         <BloodRequests />
       ) : user?.role === "STAFF" || user?.role === "ADMIN" ? (
-        <ManageSlots />
+        <div style={{ marginTop: "32px", display: "grid", gap: "28px" }}>
+          <StockEntry />
+          <ManageSlots />
+        </div>
       ) : (
         <section
           style={{
