@@ -5,6 +5,7 @@ import { authRouter } from "./routes/auth.routes.js";
 import { donorProfileRouter } from "./routes/donor-profile.routes.js";
 import { requestRouter } from "./routes/request.routes.js";
 import { appointmentSlotRouter } from "./routes/appointment-slot.routes.js";
+import { appointmentManagementRouter } from "./routes/appointment-management.routes.js";
 
 const PgStore = connectPgSimple(session);
 
@@ -40,6 +41,7 @@ app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/donors", donorProfileRouter);
 app.use("/api/v1/requests", requestRouter);
 app.use("/api/v1/appointment-slots", appointmentSlotRouter);
+app.use("/api/v1/appointment-management", appointmentManagementRouter);
 
 app.use((error, _request, response, _next) => {
   if (error?.type === "entity.parse.failed") {
