@@ -1,12 +1,16 @@
+
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BloodRequests } from "../requests/BloodRequests.jsx";
 import { ManageSlots } from "../slots/ManageSlots.jsx";
+import { StockEntry } from "../inventory/StockEntry.jsx";
+import { BloodAvailability } from "../inventory/BloodAvailability.jsx";
 import { RecordDonation } from "../donations/RecordDonation.jsx";
 
 export function Dashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [inventoryVersion, setInventoryVersion] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -98,12 +102,31 @@ export function Dashboard() {
       </header>
 
       {user?.role === "HOSPITAL_REQUESTER" ? (
-        <BloodRequests />
+        <div
+          style={{
+            marginTop: "32px",
+            display: "grid",
+            gap: "0",
+          }}
+        >
+          <BloodAvailability />
+          <BloodRequests />
+        </div>
       ) : user?.role === "STAFF" || user?.role === "ADMIN" ? (
-        <>
+        <div
+          style={{
+            marginTop: "32px",
+            display: "grid",
+            gap: "28px",
+          }}
+        >
+          <BloodAvailability refreshKey={inventoryVersion} />
+          <StockEntry
+            onAdded={() => setInventoryVersion((version) => version + 1)}
+          />
           <ManageSlots />
           <RecordDonation />
-        </>
+        </div>
       ) : (
         <section
           style={{
@@ -142,7 +165,6 @@ export function Dashboard() {
               <Link className="dashboard-profile-link" to="/profile">
                 View or update your donor profile
               </Link>
-
               <Link className="dashboard-profile-link" to="/eligibility">
                 View donor eligibility information
               </Link>
