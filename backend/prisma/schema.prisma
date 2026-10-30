@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -32,6 +33,12 @@ enum BloodGroup {
   O_NEGATIVE
 }
 
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
 model User {
   id                 String              @id @default(cuid())
   fullName           String              @map("full_name") @db.VarChar(120)
@@ -43,6 +50,7 @@ model User {
   inventoryMovements InventoryMovement[]
   donationsAsDonor   Donation[]          @relation("DonationDonor")
   donationsRecorded  Donation[]          @relation("DonationRecorder")
+  appointments       Appointment[]
 
   @@map("users")
 }
@@ -131,16 +139,32 @@ model Session {
 }
 
 model AppointmentSlot {
-  id          String   @id @default(cuid())
-  date        String   @db.VarChar(10)
-  startTime   String   @map("start_time") @db.VarChar(10)
-  endTime     String   @map("end_time") @db.VarChar(10)
-  maxCapacity Int      @map("max_capacity")
-  bookedCount Int      @default(0) @map("booked_count")
-  isAvailable Boolean  @default(true) @map("is_available")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id           String        @id @default(cuid())
+  date         String        @db.VarChar(10)
+  startTime    String        @map("start_time") @db.VarChar(10)
+  endTime      String        @map("end_time") @db.VarChar(10)
+  maxCapacity  Int           @map("max_capacity")
+  bookedCount  Int           @default(0) @map("booked_count")
+  isAvailable  Boolean       @default(true) @map("is_available")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  appointments Appointment[]
 
   @@unique([date, startTime, endTime])
   @@map("appointment_slots")
+}
+
+model Appointment {
+  id        String            @id @default(cuid())
+  donorId   String            @map("donor_id")
+  donor     User              @relation(fields: [donorId], references: [id])
+  slotId    String            @map("slot_id")
+  slot      AppointmentSlot   @relation(fields: [slotId], references: [id])
+  status    AppointmentStatus @default(SCHEDULED)
+  notes     String?           @db.VarChar(255)
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+
+  @@unique([donorId, slotId])
+  @@map("appointments")
 }
