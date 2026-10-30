@@ -3,9 +3,10 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BloodRequests } from "../requests/BloodRequests.jsx";
 import { ManageSlots } from "../slots/ManageSlots.jsx";
+import { BookAppointment } from "../appointments/BookAppointment.jsx";
+import { ManageAppointments } from "../appointments/ManageAppointments.jsx";
 import { StockEntry } from "../inventory/StockEntry.jsx";
 import { BloodAvailability } from "../inventory/BloodAvailability.jsx";
-import { ManageAppointments } from "../appointments/ManageAppointments.jsx";
 
 export function Dashboard() {
   const [user, setUser] = useState(null);
@@ -121,11 +122,11 @@ export function Dashboard() {
           }}
         >
           <BloodAvailability refreshKey={inventoryVersion} />
+
           <StockEntry
-            onAdded={() =>
-              setInventoryVersion((version) => version + 1)
-            }
+            onAdded={() => setInventoryVersion((version) => version + 1)}
           />
+
           <ManageSlots />
         </div>
       ) : (
@@ -175,7 +176,12 @@ export function Dashboard() {
             )}
           </section>
 
-          {user?.role === "DONOR" && <ManageAppointments />}
+          {user?.role === "DONOR" && (
+            <>
+              <BookAppointment />
+              <ManageAppointments />
+            </>
+          )}
         </>
       )}
     </main>
