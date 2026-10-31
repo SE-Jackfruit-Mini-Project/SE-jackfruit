@@ -7,6 +7,7 @@ import { BookAppointment } from "../appointments/BookAppointment.jsx";
 import { ManageAppointments } from "../appointments/ManageAppointments.jsx";
 import { StockEntry } from "../inventory/StockEntry.jsx";
 import { BloodAvailability } from "../inventory/BloodAvailability.jsx";
+import { ManageInventory } from "../inventory/ManageInventory.jsx";
 import { RecordDonation } from "../donations/RecordDonation.jsx";
 
 export function Dashboard() {
@@ -120,6 +121,11 @@ export function Dashboard() {
 
           <StockEntry
             onAdded={() => setInventoryVersion((version) => version + 1)}
+          />
+
+          <ManageInventory
+            refreshKey={inventoryVersion}
+            onChanged={() => setInventoryVersion((version) => version + 1)}
           />
 
           <ManageSlots />
