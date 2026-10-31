@@ -119,6 +119,36 @@ const adjustStockSchema = z.object({
     .max(200, "Reason is too long."),
 });
 
+// FR-028, FR-029: remove allocated units from a blood group. Must be called with
+// a transaction client so the inventory and request updates commit together.
+// The decrement only applies when enough stock remains, so concurrent
+// allocations cannot oversell and stock never goes negative.
+export async function allocateUnits(tx, { bloodGroup, units, actorId, referenceId }) {
+  const { count } = await tx.inventory.updateMany({
+    where: { bloodGroup, availableUnits: { gte: units } },
+    data: { availableUnits: { decrement: units } },
+  });
+  if (count === 0) {
+    throw new InventoryError(409, "Insufficient inventory to allocate the requested units.");
+  }
+
+  const row = await tx.inventory.findUnique({ where: { bloodGroup } });
+  const inventory = await syncStatus(tx, row);
+
+  await tx.inventoryMovement.create({
+    data: {
+      inventoryId: inventory.id,
+      type: "ALLOCATION",
+      delta: -units,
+      reason: "Allocated to blood request",
+      referenceId,
+      actorId,
+    },
+  });
+
+  return inventory;
+}
+
 // FR-027: staff correct stock (for example expired or damaged units). The status
 // is derived from the quantity, so correcting the quantity updates the status.
 // A removal is a conditional decrement so stock can never go negative.

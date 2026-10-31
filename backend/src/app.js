@@ -10,6 +10,7 @@ import { appointmentSlotRouter } from "./routes/appointment-slot.routes.js";
 import { appointmentManagementRouter } from "./routes/appointment-management.routes.js";
 import { appointmentRouter } from "./routes/appointment.routes.js";
 import { inventoryRouter } from "./routes/inventory.routes.js";
+import { allocationRouter } from "./routes/allocation.routes.js";
 import { donationRouter } from "./routes/donation.routes.js";
 
 const PgStore = connectPgSimple(session);
@@ -50,6 +51,7 @@ app.use("/api/v1/appointment-slots", appointmentSlotRouter);
 app.use("/api/v1/appointment-management", appointmentManagementRouter);
 app.use("/api/v1/appointments", appointmentRouter);
 app.use("/api/v1/inventory", inventoryRouter);
+app.use("/api/v1/allocations", allocationRouter);
 app.use("/api/v1/donations", donationRouter);
 
 app.use((error, _request, response, _next) => {
