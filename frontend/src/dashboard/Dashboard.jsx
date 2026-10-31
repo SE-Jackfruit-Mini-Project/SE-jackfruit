@@ -78,7 +78,7 @@ export function Dashboard() {
               fontSize: "14px",
             }}
           >
-            Signed in as <strong>{user?.fullName}</strong> ({user?.email}) &bull;{" "}
+            Signed in as <strong>{user?.fullName}</strong> <br/>
             <span style={{ fontWeight: "bold", color: "#862f2b" }}>
               {user?.role}
             </span>

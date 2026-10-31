@@ -100,7 +100,7 @@ export function LoginPage() {
 
         <p className="privacy-note">
           Don&apos;t have an account?{" "}
-          <Link to="/register">Create a donor account</Link>
+          <Link to="/register">Create an account</Link>
           <br />
           <Link to="/eligibility">View donor eligibility information</Link>
         </p>
