@@ -6,7 +6,6 @@ import { ManageSlots } from "../slots/ManageSlots.jsx";
 import { BookAppointment } from "../appointments/BookAppointment.jsx";
 import { StockEntry } from "../inventory/StockEntry.jsx";
 import { BloodAvailability } from "../inventory/BloodAvailability.jsx";
-import { RecordDonation } from "../donations/RecordDonation.jsx";
 
 export function Dashboard() {
   const [user, setUser] = useState(null);
@@ -103,7 +102,13 @@ export function Dashboard() {
       </header>
 
       {user?.role === "HOSPITAL_REQUESTER" ? (
-        <div style={{ marginTop: "32px", display: "grid", gap: "0" }}>
+        <div
+          style={{
+            marginTop: "32px",
+            display: "grid",
+            gap: "0",
+          }}
+        >
           <BloodAvailability />
           <BloodRequests />
         </div>
@@ -120,7 +125,6 @@ export function Dashboard() {
             onAdded={() => setInventoryVersion((version) => version + 1)}
           />
           <ManageSlots />
-          <RecordDonation />
         </div>
       ) : (
         <>
@@ -161,6 +165,7 @@ export function Dashboard() {
                 <Link className="dashboard-profile-link" to="/profile">
                   View or update your donor profile
                 </Link>
+
                 <Link className="dashboard-profile-link" to="/eligibility">
                   View donor eligibility information
                 </Link>
