@@ -8,7 +8,7 @@
     "start": "node src/server.js",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --roots ./tests ../tests/unit-testing/backend --runInBand"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
