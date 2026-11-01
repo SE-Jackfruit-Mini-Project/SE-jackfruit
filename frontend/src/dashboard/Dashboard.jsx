@@ -4,7 +4,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { BloodRequests } from "../requests/BloodRequests.jsx";
 import { ManageSlots } from "../slots/ManageSlots.jsx";
 import { BookAppointment } from "../appointments/BookAppointment.jsx";
-import { ManageAppointments } from "../appointments/ManageAppointments.jsx";
 import { StockEntry } from "../inventory/StockEntry.jsx";
 import { BloodAvailability } from "../inventory/BloodAvailability.jsx";
 import { RecordDonation } from "../donations/RecordDonation.jsx";
@@ -117,11 +116,9 @@ export function Dashboard() {
           }}
         >
           <BloodAvailability refreshKey={inventoryVersion} />
-
           <StockEntry
             onAdded={() => setInventoryVersion((version) => version + 1)}
           />
-
           <ManageSlots />
           <RecordDonation />
         </div>
@@ -171,12 +168,7 @@ export function Dashboard() {
             )}
           </section>
 
-          {user?.role === "DONOR" && (
-            <>
-              <BookAppointment />
-              <ManageAppointments />
-            </>
-          )}
+          {user?.role === "DONOR" && <BookAppointment />}
         </>
       )}
     </main>
