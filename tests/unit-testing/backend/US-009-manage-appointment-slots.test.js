@@ -4,7 +4,7 @@ import { jest } from "@jest/globals";
 const findMany = jest.fn();
 const create = jest.fn();
 
-jest.unstable_mockModule("../src/utils/prisma.js", () => ({
+jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: {
     appointmentSlot: {
       findMany,
@@ -16,7 +16,7 @@ jest.unstable_mockModule("../src/utils/prisma.js", () => ({
 const {
   createAppointmentSlot,
   getAvailableSlots,
-} = await import("../src/services/appointment-slot.service.js");
+} = await import("../../../backend/src/services/appointment-slot.service.js");
 
 beforeEach(() => {
   findMany.mockReset();

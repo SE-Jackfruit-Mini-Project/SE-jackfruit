@@ -5,7 +5,7 @@ const findUnique = jest.fn();
 const findFirst = jest.fn();
 const transaction = jest.fn();
 
-jest.unstable_mockModule("../src/utils/prisma.js", () => ({
+jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: {
     appointmentSlot: { findUnique },
     appointment: { findFirst },
@@ -14,7 +14,7 @@ jest.unstable_mockModule("../src/utils/prisma.js", () => ({
 }));
 
 const { bookAppointment } = await import(
-  "../src/services/appointment.service.js"
+  "../../../backend/src/services/appointment.service.js"
 );
 
 beforeEach(() => {
