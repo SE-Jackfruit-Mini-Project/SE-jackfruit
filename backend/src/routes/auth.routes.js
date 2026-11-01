@@ -47,6 +47,10 @@ authRouter.post("/login", async (request, response, next) => {
       return response.status(401).json({ message: error.message });
     }
 
+    if (error.code === "ACCOUNT_DEACTIVATED") {
+      return response.status(403).json({ message: error.message });
+    }
+
     return next(error);
   }
 });
