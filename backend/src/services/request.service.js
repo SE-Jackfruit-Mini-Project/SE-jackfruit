@@ -104,21 +104,32 @@ export async function getAllRequests(statusFilter) {
   });
 }
 
-// FR-036 & FR-037: Approve or reject a pending request
+// FR-036 & FR-037: Approve or reject a pending request (Atomic & Concurrency-Safe)
 export async function reviewBloodRequest(requestId, statusInput) {
   const decision = reviewDecisionSchema.parse(statusInput);
 
-  const existing = await prisma.bloodRequest.findUnique({
-    where: { id: requestId },
+  // Atomic state transition: only transitions if the current state in PostgreSQL is PENDING
+  const updateResult = await prisma.bloodRequest.updateMany({
+    where: {
+      id: requestId,
+      status: "PENDING",
+    },
+    data: {
+      status: decision,
+    },
   });
 
-  if (!existing) {
-    const error = new Error("Blood request not found.");
-    error.code = "REQUEST_NOT_FOUND";
-    throw error;
-  }
+  if (updateResult.count === 0) {
+    const existing = await prisma.bloodRequest.findUnique({
+      where: { id: requestId },
+    });
 
-  if (existing.status !== "PENDING") {
+    if (!existing) {
+      const error = new Error("Blood request not found.");
+      error.code = "REQUEST_NOT_FOUND";
+      throw error;
+    }
+
     const error = new Error(
       `Only pending requests can be reviewed. This request is already ${existing.status.toLowerCase()}.`
     );
@@ -126,9 +137,8 @@ export async function reviewBloodRequest(requestId, statusInput) {
     throw error;
   }
 
-  return prisma.bloodRequest.update({
+  return prisma.bloodRequest.findUnique({
     where: { id: requestId },
-    data: { status: decision },
     select: {
       id: true,
       hospitalName: true,
