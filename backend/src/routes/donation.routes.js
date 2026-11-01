@@ -12,7 +12,7 @@ import {
 
 export const donationRouter = Router();
 
-donationRouter.use(requireAuth, requireRole("STAFF", "ADMIN"));
+donationRouter.use(requireAuth, requireRole("STAFF"));
 
 donationRouter.get("/donors", async (_request, response, next) => {
   try {

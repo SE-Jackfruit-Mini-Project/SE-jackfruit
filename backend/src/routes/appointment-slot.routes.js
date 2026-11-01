@@ -12,7 +12,7 @@ export const appointmentSlotRouter = Router();
 appointmentSlotRouter.post(
   "/",
   requireAuth,
-  requireRole("STAFF", "ADMIN"),
+  requireRole("STAFF"),
   async (request, response, next) => {
     try {
       const slot = await createAppointmentSlot(request.body);
@@ -45,7 +45,7 @@ appointmentSlotRouter.get("/", requireAuth, async (request, response, next) => {
   try {
     const userRole = request.session?.user?.role;
     let slots;
-    if (userRole === "STAFF" || userRole === "ADMIN") {
+    if (userRole === "STAFF") {
       slots = await getAllSlots();
     } else {
       slots = await getAvailableSlots();

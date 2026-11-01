@@ -66,8 +66,10 @@ export function Dashboard() {
           >
             {user?.role === "HOSPITAL_REQUESTER"
               ? "Hospital Portal"
-              : user?.role === "STAFF" || user?.role === "ADMIN"
+              : user?.role === "STAFF"
               ? "Staff Portal"
+              : user?.role === "ADMIN"
+              ? "Admin Portal"
               : "Dashboard"}
           </h2>
 
@@ -108,7 +110,7 @@ export function Dashboard() {
           <BloodAvailability />
           <BloodRequests />
         </div>
-      ) : user?.role === "STAFF" || user?.role === "ADMIN" ? (
+      ) : user?.role === "STAFF" ? (
         <div
           style={{
             marginTop: "32px",
@@ -125,6 +127,24 @@ export function Dashboard() {
           <ManageSlots />
           <RecordDonation />
         </div>
+      ) : user?.role === "ADMIN" ? (
+        <section
+          style={{
+            marginTop: "32px",
+            background: "#fff",
+            padding: "32px",
+            borderRadius: "16px",
+            border: "1px solid #e7dcd3",
+          }}
+        >
+          <h3 style={{ fontFamily: "Manrope, sans-serif", marginTop: 0 }}>
+            Administrative access
+          </h3>
+          <p style={{ color: "#81716a", lineHeight: 1.6 }}>
+            User, role, and account-status management is planned under US-017.
+            It is not part of the Sprint 1 operational dashboard yet.
+          </p>
+        </section>
       ) : (
         <>
           <section

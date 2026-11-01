@@ -5,7 +5,7 @@ import { addStock, getAvailability } from "../services/inventory.service.js";
 export const inventoryRouter = Router();
 
 // FR-023: Add blood units from non-donation stock additions (Staff & Admin only)
-inventoryRouter.post("/stock", requireAuth, requireRole("STAFF", "ADMIN"), async (request, response, next) => {
+inventoryRouter.post("/stock", requireAuth, requireRole("STAFF"), async (request, response, next) => {
   try {
     const inventory = await addStock(request.session.user.id, request.body);
     return response.status(201).json({
