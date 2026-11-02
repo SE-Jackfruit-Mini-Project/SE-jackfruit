@@ -6,6 +6,7 @@ import { ManageSlots } from "../slots/ManageSlots.jsx";
 import { BookAppointment } from "../appointments/BookAppointment.jsx";
 import { StockEntry } from "../inventory/StockEntry.jsx";
 import { BloodAvailability } from "../inventory/BloodAvailability.jsx";
+import { RecordDonation } from "../donations/RecordDonation.jsx";
 
 export function Dashboard() {
   const [user, setUser] = useState(null);
@@ -125,6 +126,7 @@ export function Dashboard() {
             onAdded={() => setInventoryVersion((version) => version + 1)}
           />
           <ManageSlots />
+          <RecordDonation />
         </div>
       ) : (
         <>
