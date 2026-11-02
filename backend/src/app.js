@@ -1,4 +1,3 @@
-
 import express from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
@@ -9,6 +8,7 @@ import { requestRouter } from "./routes/request.routes.js";
 import { appointmentSlotRouter } from "./routes/appointment-slot.routes.js";
 import { appointmentRouter } from "./routes/appointment.routes.js";
 import { inventoryRouter } from "./routes/inventory.routes.js";
+import { adminRouter } from "./routes/admin.routes.js";
 
 const PgStore = connectPgSimple(session);
 
@@ -46,6 +46,7 @@ app.use("/api/v1/requests", requestRouter);
 app.use("/api/v1/appointment-slots", appointmentSlotRouter);
 app.use("/api/v1/appointments", appointmentRouter);
 app.use("/api/v1/inventory", inventoryRouter);
+app.use("/api/v1/admin", adminRouter);
 
 app.use((error, _request, response, _next) => {
   if (error?.type === "entity.parse.failed") {

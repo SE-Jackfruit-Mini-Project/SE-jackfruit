@@ -45,6 +45,7 @@ model User {
   email              String              @unique @db.VarChar(254)
   passwordHash       String              @map("password_hash")
   role               UserRole            @default(DONOR)
+  isActive           Boolean             @default(true) @map("is_active")
   createdAt          DateTime            @default(now()) @map("created_at")
   bloodRequests      BloodRequest[]
   inventoryMovements InventoryMovement[]

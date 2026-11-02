@@ -29,6 +29,10 @@ const bloodRequestSchema = z.object({
   urgency: z.enum(["NORMAL", "URGENT", "EMERGENCY"]).default("NORMAL"),
 });
 
+const reviewDecisionSchema = z.enum(["APPROVED", "REJECTED"], {
+  errorMap: () => ({ message: "Decision status must be either APPROVED or REJECTED." }),
+});
+
 export async function createBloodRequest(userId, input) {
   const values = bloodRequestSchema.parse(input);
 
@@ -67,6 +71,83 @@ export async function getRequesterRequests(userId) {
       urgency: true,
       status: true,
       createdAt: true,
+    },
+  });
+}
+
+// FR-035: View all blood requests requiring staff processing
+export async function getAllRequests(statusFilter) {
+  const where = {};
+  if (statusFilter && ["PENDING", "APPROVED", "REJECTED", "ALLOCATED"].includes(statusFilter)) {
+    where.status = statusFilter;
+  }
+
+  return prisma.bloodRequest.findMany({
+    where,
+    orderBy: [{ createdAt: "desc" }],
+    select: {
+      id: true,
+      hospitalName: true,
+      bloodGroup: true,
+      units: true,
+      urgency: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      requester: {
+        select: {
+          fullName: true,
+          email: true,
+        },
+      },
+    },
+  });
+}
+
+// FR-036 & FR-037: Approve or reject a pending request (Atomic & Concurrency-Safe)
+export async function reviewBloodRequest(requestId, statusInput) {
+  const decision = reviewDecisionSchema.parse(statusInput);
+
+  // Atomic state transition: only transitions if the current state in PostgreSQL is PENDING
+  const updateResult = await prisma.bloodRequest.updateMany({
+    where: {
+      id: requestId,
+      status: "PENDING",
+    },
+    data: {
+      status: decision,
+    },
+  });
+
+  if (updateResult.count === 0) {
+    const existing = await prisma.bloodRequest.findUnique({
+      where: { id: requestId },
+    });
+
+    if (!existing) {
+      const error = new Error("Blood request not found.");
+      error.code = "REQUEST_NOT_FOUND";
+      throw error;
+    }
+
+    const error = new Error(
+      `Only pending requests can be reviewed. This request is already ${existing.status.toLowerCase()}.`
+    );
+    error.code = "INVALID_STATUS_TRANSITION";
+    throw error;
+  }
+
+  return prisma.bloodRequest.findUnique({
+    where: { id: requestId },
+    select: {
+      id: true,
+      hospitalName: true,
+      bloodGroup: true,
+      units: true,
+      urgency: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
     },
   });
 }
