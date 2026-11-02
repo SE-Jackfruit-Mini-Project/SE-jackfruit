@@ -1,9 +1,8 @@
 import { Link } from "react-router-dom";
-
-// The approved SRS has not defined donor eligibility criteria yet.
-const approvedEligibilityInformation = null;
+import { getEligibilityState } from "./eligibility-content.js";
 
 export function EligibilityPage() {
+  const eligibility = getEligibilityState();
   return (
     <main className="eligibility-page">
       <article className="eligibility-card" aria-labelledby="eligibility-title">
@@ -13,9 +12,9 @@ export function EligibilityPage() {
           Read the blood bank&apos;s approved guidance before arranging a donation.
         </p>
 
-        {approvedEligibilityInformation ? (
+        {eligibility.available ? (
           <section aria-label="Approved donor eligibility guidance">
-            {approvedEligibilityInformation}
+            {eligibility.content}
           </section>
         ) : (
           <section className="eligibility-unavailable" aria-live="polite" role="status">
