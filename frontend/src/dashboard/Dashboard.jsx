@@ -7,6 +7,7 @@ import { BookAppointment } from "../appointments/BookAppointment.jsx";
 import { StockEntry } from "../inventory/StockEntry.jsx";
 import { BloodAvailability } from "../inventory/BloodAvailability.jsx";
 import { RecordDonation } from "../donations/RecordDonation.jsx";
+import { ManageAppointments } from "../appointments/ManageAppointments.jsx";
 
 export function Dashboard() {
   const [user, setUser] = useState(null);
@@ -175,7 +176,13 @@ export function Dashboard() {
             )}
           </section>
 
-          {user?.role === "DONOR" && <BookAppointment />}
+          {user?.role === "DONOR" && (
+     <>
+    <BookAppointment />
+    <ManageAppointments />
+  </>
+)
+}
         </>
       )}
     </main>
