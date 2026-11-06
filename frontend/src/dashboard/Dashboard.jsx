@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BloodRequests } from "../requests/BloodRequests.jsx";
+import { ReviewRequests } from "../requests/ReviewRequests.jsx";
 import { ManageSlots } from "../slots/ManageSlots.jsx";
 import { BookAppointment } from "../appointments/BookAppointment.jsx";
 import { StockEntry } from "../inventory/StockEntry.jsx";
@@ -122,6 +123,8 @@ export function Dashboard() {
             gap: "28px",
           }}
         >
+          <ReviewRequests />
+
           <BloodAvailability refreshKey={inventoryVersion} />
           <StockEntry
             onAdded={() => setInventoryVersion((version) => version + 1)}
