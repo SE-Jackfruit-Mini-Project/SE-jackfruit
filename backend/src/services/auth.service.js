@@ -19,11 +19,18 @@ export async function loginUser(input) {
     throw error;
   }
 
+  if (user.isActive === false) {
+    const error = new Error("Your account has been deactivated. Please contact an administrator.");
+    error.code = "ACCOUNT_DEACTIVATED";
+    throw error;
+  }
+
   return {
     id: user.id,
     fullName: user.fullName,
     email: user.email,
     role: user.role,
+    isActive: user.isActive ?? true,
     createdAt: user.createdAt,
   };
 }
