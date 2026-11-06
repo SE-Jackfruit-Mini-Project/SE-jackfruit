@@ -49,8 +49,8 @@ jest.unstable_mockModule("../src/utils/prisma.js", () => ({
   },
 }));
 
-const { inventoryRouter } = await import("../src/routes/inventory.routes.js");
-const { deriveStatus, LOW_STOCK_THRESHOLD } = await import("../src/services/inventory.service.js");
+const { inventoryRouter } = await import("../../backend/src/routes/inventory.routes.js");
+const { deriveStatus, LOW_STOCK_THRESHOLD } = await import("../../backend/src/services/inventory.service.js");
 
 function appWithUser(user) {
   const app = express();

@@ -3,7 +3,7 @@ import { jest } from "@jest/globals";
 const create = jest.fn();
 const findMany = jest.fn();
 
-jest.unstable_mockModule("../src/utils/prisma.js", () => ({
+jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: {
     bloodRequest: { create, findMany },
   },
@@ -12,7 +12,7 @@ jest.unstable_mockModule("../src/utils/prisma.js", () => ({
 const {
   createBloodRequest,
   getRequesterRequests,
-} = await import("../src/services/request.service.js");
+} = await import("../../../backend/src/services/request.service.js");
 
 beforeEach(() => {
   create.mockReset();

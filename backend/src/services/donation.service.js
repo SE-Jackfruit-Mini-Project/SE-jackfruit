@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { prisma } from "../utils/prisma.js";
+import { deriveStatus } from "./inventory.service.js";
+
 
 const bloodGroups = [
   "A_POSITIVE",
@@ -145,41 +147,28 @@ export async function recordCompletedDonation(staffId, input) {
     });
 
     if (values.accepted) {
-      const inventory = await tx.inventory.upsert({
+            const inventoryRow = await tx.inventory.upsert({
         where: {
           bloodGroup: values.bloodGroup,
         },
         create: {
           bloodGroup: values.bloodGroup,
           availableUnits: values.units,
-          status: "AVAILABLE",
+          status: deriveStatus(values.units),
         },
         update: {
           availableUnits: {
             increment: values.units,
           },
-          status: "AVAILABLE",
-        },
-        select: {
-          id: true,
         },
       });
 
-      await tx.inventoryMovement.create({
-        data: {
-          inventoryId: inventory.id,
-          type: "DONATION",
-          delta: values.units,
-          reason: `Accepted donation ${donation.id}`.slice(0, 200),
-          referenceId: donation.id,
-          actorId: staffId,
-        },
-      });
-    }
+      const status = deriveStatus(inventoryRow.availableUnits);
 
-    return {
-      donation,
-      inventoryUpdated: values.accepted,
-    };
-  });
-}
+      const inventory =
+        status === inventoryRow.status
+          ? inventoryRow
+          : await tx.inventory.update({
+              where: { id: inventoryRow.id },
+              data: { status },
+            });

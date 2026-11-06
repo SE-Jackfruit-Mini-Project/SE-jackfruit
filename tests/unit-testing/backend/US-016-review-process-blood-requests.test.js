@@ -4,7 +4,7 @@ const findMany = jest.fn();
 const findUnique = jest.fn();
 const updateMany = jest.fn();
 
-jest.unstable_mockModule("../src/utils/prisma.js", () => ({
+jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: {
     bloodRequest: { findMany, findUnique, updateMany },
   },
@@ -13,7 +13,7 @@ jest.unstable_mockModule("../src/utils/prisma.js", () => ({
 const {
   getAllRequests,
   reviewBloodRequest,
-} = await import("../src/services/request.service.js");
+} = await import("../../../backend/src/services/request.service.js");
 
 beforeEach(() => {
   findMany.mockReset();
