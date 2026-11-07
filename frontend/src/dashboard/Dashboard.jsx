@@ -4,12 +4,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { BloodRequests } from "../requests/BloodRequests.jsx";
 import { ManageSlots } from "../slots/ManageSlots.jsx";
 import { BookAppointment } from "../appointments/BookAppointment.jsx";
-import { ManageAppointments } from "../appointments/ManageAppointments.jsx";
 import { StockEntry } from "../inventory/StockEntry.jsx";
 import { BloodAvailability } from "../inventory/BloodAvailability.jsx";
 import { ManageInventory } from "../inventory/ManageInventory.jsx";
 import { AllocateRequests } from "../inventory/AllocateRequests.jsx";
 import { RecordDonation } from "../donations/RecordDonation.jsx";
+import { ManageAppointments } from "../appointments/ManageAppointments.jsx";
+import { DonationHistory } from "../donations/DonationHistory.jsx";
 
 export function Dashboard() {
   const [user, setUser] = useState(null);
@@ -80,7 +81,7 @@ export function Dashboard() {
               fontSize: "14px",
             }}
           >
-            Signed in as <strong>{user?.fullName}</strong> ({user?.email}) &bull;{" "}
+            Signed in as <strong>{user?.fullName}</strong> <br/>
             <span style={{ fontWeight: "bold", color: "#862f2b" }}>
               {user?.role}
             </span>
@@ -106,7 +107,13 @@ export function Dashboard() {
       </header>
 
       {user?.role === "HOSPITAL_REQUESTER" ? (
-        <div style={{ marginTop: "32px", display: "grid", gap: "0" }}>
+        <div
+          style={{
+            marginTop: "32px",
+            display: "grid",
+            gap: "0",
+          }}
+        >
           <BloodAvailability />
           <BloodRequests />
         </div>
@@ -119,11 +126,9 @@ export function Dashboard() {
           }}
         >
           <BloodAvailability refreshKey={inventoryVersion} />
-
           <StockEntry
             onAdded={() => setInventoryVersion((version) => version + 1)}
           />
-
           <ManageInventory
             refreshKey={inventoryVersion}
             onChanged={() => setInventoryVersion((version) => version + 1)}
@@ -132,7 +137,6 @@ export function Dashboard() {
           <AllocateRequests
             onAllocated={() => setInventoryVersion((version) => version + 1)}
           />
-
           <ManageSlots />
           <RecordDonation />
         </div>
@@ -175,6 +179,7 @@ export function Dashboard() {
                 <Link className="dashboard-profile-link" to="/profile">
                   View or update your donor profile
                 </Link>
+
                 <Link className="dashboard-profile-link" to="/eligibility">
                   View donor eligibility information
                 </Link>
@@ -183,11 +188,13 @@ export function Dashboard() {
           </section>
 
           {user?.role === "DONOR" && (
-            <>
-              <BookAppointment />
-              <ManageAppointments />
-            </>
-          )}
+     <>
+    <BookAppointment />
+    <ManageAppointments />
+    <DonationHistory />
+  </>
+)
+}
         </>
       )}
     </main>
