@@ -87,3 +87,83 @@ export async function getAvailability() {
     };
   });
 }
+
+export class InventoryError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.name = "InventoryError";
+    this.status = status;
+  }
+}
+
+// Brings the stored status in line with the quantity and returns the row.
+export async function syncStatus(tx, row) {
+  const status = deriveStatus(row.availableUnits);
+  if (status === row.status) return row;
+  return tx.inventory.update({ where: { id: row.id }, data: { status } });
+}
+
+const adjustStockSchema = z.object({
+  bloodGroup: z.enum(Object.values(BloodGroup), {
+    errorMap: () => ({ message: "Please select a valid blood group." }),
+  }),
+  delta: z.coerce
+    .number({ invalid_type_error: "Adjustment must be a number." })
+    .int("Adjustment must be a whole number.")
+    .refine((value) => value !== 0, "Adjustment cannot be zero.")
+    .refine((value) => Math.abs(value) <= 1000, "Adjustment cannot exceed 1000 units."),
+  reason: z
+    .string({ required_error: "A reason is required." })
+    .trim()
+    .min(3, "A reason is required.")
+    .max(200, "Reason is too long."),
+});
+
+// FR-027: staff correct stock (for example expired or damaged units). The status
+// is derived from the quantity, so correcting the quantity updates the status.
+// A removal is a conditional decrement so stock can never go negative.
+export async function adjustStock(actorId, input) {
+  const values = adjustStockSchema.parse(input);
+
+  return prisma.$transaction(async (tx) => {
+    let row;
+    if (values.delta > 0) {
+      row = await tx.inventory.upsert({
+        where: { bloodGroup: values.bloodGroup },
+        create: {
+          bloodGroup: values.bloodGroup,
+          availableUnits: values.delta,
+          status: deriveStatus(values.delta),
+        },
+        update: { availableUnits: { increment: values.delta } },
+      });
+    } else {
+      const { count } = await tx.inventory.updateMany({
+        where: { bloodGroup: values.bloodGroup, availableUnits: { gte: -values.delta } },
+        data: { availableUnits: { decrement: -values.delta } },
+      });
+      if (count === 0) {
+        throw new InventoryError(409, "Cannot remove more units than are currently in stock.");
+      }
+      row = await tx.inventory.findUnique({ where: { bloodGroup: values.bloodGroup } });
+    }
+
+    const inventory = await syncStatus(tx, row);
+
+    await tx.inventoryMovement.create({
+      data: {
+        inventoryId: inventory.id,
+        type: "ADJUSTMENT",
+        delta: values.delta,
+        reason: values.reason,
+        actorId,
+      },
+    });
+
+    return {
+      bloodGroup: inventory.bloodGroup,
+      availableUnits: inventory.availableUnits,
+      status: inventory.status,
+    };
+  });
+}
