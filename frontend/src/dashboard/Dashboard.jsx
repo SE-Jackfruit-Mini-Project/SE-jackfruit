@@ -6,8 +6,10 @@ import { ManageSlots } from "../slots/ManageSlots.jsx";
 import { BookAppointment } from "../appointments/BookAppointment.jsx";
 import { StockEntry } from "../inventory/StockEntry.jsx";
 import { BloodAvailability } from "../inventory/BloodAvailability.jsx";
+import { RecordDonation } from "../donations/RecordDonation.jsx";
 import { ManageAppointments } from "../appointments/ManageAppointments.jsx";
 import { DonorInformation } from "../donors/DonorInformation.jsx";
+import { DonationHistory } from "../donations/DonationHistory.jsx";
 
 export function Dashboard() {
   const [user, setUser] = useState(null);
@@ -128,6 +130,7 @@ export function Dashboard() {
           />
           <ManageSlots />
           <DonorInformation />
+          <RecordDonation />
         </div>
       ) : (
         <>
@@ -180,6 +183,7 @@ export function Dashboard() {
      <>
     <BookAppointment />
     <ManageAppointments />
+    <DonationHistory />
   </>
 )
 }

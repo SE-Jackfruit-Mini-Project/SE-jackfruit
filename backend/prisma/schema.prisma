@@ -49,6 +49,8 @@ model User {
   bloodRequests      BloodRequest[]
   inventoryMovements InventoryMovement[]
   appointments       Appointment[]
+  donationsAsDonor   Donation[] @relation("DonationDonor")
+  donationsRecorded  Donation[] @relation("DonationRecorder")
 
   @@map("users")
 }
@@ -152,4 +154,22 @@ model Appointment {
 
   @@unique([donorId, slotId])
   @@map("appointments")
+}
+
+model Donation {
+  id           String     @id @default(cuid())
+  donorId      String     @map("donor_id")
+  donor        User       @relation("DonationDonor", fields: [donorId], references: [id])
+  recordedById String     @map("recorded_by_id")
+  recordedBy   User       @relation("DonationRecorder", fields: [recordedById], references: [id])
+  bloodGroup   BloodGroup @map("blood_group")
+  units        Int
+  donationDate DateTime   @map("donation_date") @db.Date
+  accepted     Boolean    @default(false)
+  notes        String?    @db.VarChar(255)
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@index([donorId, donationDate])
+  @@index([bloodGroup, donationDate])
+  @@map("donations")
 }
