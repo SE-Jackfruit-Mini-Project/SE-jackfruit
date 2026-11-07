@@ -172,3 +172,21 @@ export async function recordCompletedDonation(staffId, input) {
               where: { id: inventoryRow.id },
               data: { status },
             });
+      await tx.inventoryMovement.create({
+        data: {
+          inventoryId: inventory.id,
+          type: "DONATION",
+          delta: values.units,
+          reason: `Accepted donation ${donation.id}`.slice(0, 200),
+          referenceId: donation.id,
+          actorId: staffId,
+        },
+      });
+    }
+
+    return {
+      donation,
+      inventoryUpdated: values.accepted,
+    };
+  });
+}
