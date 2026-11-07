@@ -8,6 +8,7 @@ import { StockEntry } from "../inventory/StockEntry.jsx";
 import { BloodAvailability } from "../inventory/BloodAvailability.jsx";
 import { RecordDonation } from "../donations/RecordDonation.jsx";
 import { ManageAppointments } from "../appointments/ManageAppointments.jsx";
+import { DonorInformation } from "../donors/DonorInformation.jsx";
 import { DonationHistory } from "../donations/DonationHistory.jsx";
 
 export function Dashboard() {
@@ -128,6 +129,7 @@ export function Dashboard() {
             onAdded={() => setInventoryVersion((version) => version + 1)}
           />
           <ManageSlots />
+          <DonorInformation />
           <RecordDonation />
         </div>
       ) : (
