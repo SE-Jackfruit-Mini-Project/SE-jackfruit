@@ -6,6 +6,8 @@ import { ManageSlots } from "../slots/ManageSlots.jsx";
 import { BookAppointment } from "../appointments/BookAppointment.jsx";
 import { StockEntry } from "../inventory/StockEntry.jsx";
 import { BloodAvailability } from "../inventory/BloodAvailability.jsx";
+import { ManageInventory } from "../inventory/ManageInventory.jsx";
+import { AllocateRequests } from "../inventory/AllocateRequests.jsx";
 import { RecordDonation } from "../donations/RecordDonation.jsx";
 import { ManageAppointments } from "../appointments/ManageAppointments.jsx";
 import { DonationHistory } from "../donations/DonationHistory.jsx";
@@ -126,6 +128,14 @@ export function Dashboard() {
           <BloodAvailability refreshKey={inventoryVersion} />
           <StockEntry
             onAdded={() => setInventoryVersion((version) => version + 1)}
+          />
+          <ManageInventory
+            refreshKey={inventoryVersion}
+            onChanged={() => setInventoryVersion((version) => version + 1)}
+          />
+
+          <AllocateRequests
+            onAllocated={() => setInventoryVersion((version) => version + 1)}
           />
           <ManageSlots />
           <RecordDonation />
