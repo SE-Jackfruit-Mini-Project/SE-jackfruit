@@ -10,6 +10,7 @@ import { ManageInventory } from "../inventory/ManageInventory.jsx";
 import { AllocateRequests } from "../inventory/AllocateRequests.jsx";
 import { RecordDonation } from "../donations/RecordDonation.jsx";
 import { ManageAppointments } from "../appointments/ManageAppointments.jsx";
+import { DonorInformation } from "../donors/DonorInformation.jsx";
 import { DonationHistory } from "../donations/DonationHistory.jsx";
 
 export function Dashboard() {
@@ -138,6 +139,7 @@ export function Dashboard() {
             onAllocated={() => setInventoryVersion((version) => version + 1)}
           />
           <ManageSlots />
+          <DonorInformation />
           <RecordDonation />
         </div>
       ) : (
