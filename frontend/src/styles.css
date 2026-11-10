@@ -20,7 +20,7 @@
 
 body { margin: 0; min-width: 320px; min-height: 100vh; }
 
-button, input { font: inherit; }
+button, input, select { font: inherit; }
 
 /* --- Authentication & Registration Split-Screen Layout --- */
 .page-shell {
@@ -103,7 +103,7 @@ h2 { margin: 0; font-size: clamp(30px, 3vw, 42px); }
 
 form { display: grid; gap: 10px; }
 label { margin-top: 6px; color: #51413b; font-size: 13px; font-weight: 700; }
-input {
+input, select {
   width: 100%;
   min-height: 50px;
   padding: 0 15px;
@@ -114,7 +114,7 @@ input {
   color: #302522;
 }
 input::placeholder { color: #b0a19a; }
-input:focus { border-color: #a34941; box-shadow: 0 0 0 3px #a349411a; }
+input:focus, select:focus { border-color: #a34941; box-shadow: 0 0 0 3px #a349411a; }
 
 button {
   min-height: 52px;

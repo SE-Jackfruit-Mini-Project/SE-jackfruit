@@ -20,6 +20,7 @@ export function BookAppointment() {
   const [loading, setLoading] = useState(true);
   const [bookingSlotId, setBookingSlotId] = useState(null);
   const [notes, setNotes] = useState("");
+  const [weightKg, setWeightKg] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
 
@@ -73,7 +74,7 @@ export function BookAppointment() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ slotId, notes }),
+        body: JSON.stringify({ slotId, notes, weightKg: Number(weightKg) }),
       });
 
       const result = await response.json();
@@ -92,6 +93,7 @@ export function BookAppointment() {
       });
       setBookingSlotId(null);
       setNotes("");
+      setWeightKg("");
       loadData();
     } catch {
       setMessage({ type: "error", text: "Network error. Please try again." });
@@ -132,7 +134,8 @@ export function BookAppointment() {
           Available Donation Appointment Slots
         </h3>
         <p style={{ margin: "0 0 20px", color: "#81716a", fontSize: "14px" }}>
-          Select an available slot to book your blood donation appointment.
+          Select an available slot and enter your current weight. Booking requires age 18–65,
+          weight of at least 45 kg, and a wait since the previous booking of 4 months for female donors or 3 months for male donors.
         </p>
 
         {loading ? (
@@ -176,6 +179,25 @@ export function BookAppointment() {
                   <div>
                     {isSelected ? (
                       <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                        <label style={{ display: "grid", gap: "4px", color: "#51413b", fontSize: "12px" }}>
+                          Weight (kg)
+                          <input
+                            type="number"
+                            min="45"
+                            step="0.1"
+                            required
+                            value={weightKg}
+                            onChange={(event) => setWeightKg(event.target.value)}
+                            aria-label="Current weight in kilograms"
+                            placeholder="At least 45"
+                            style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #e7dcd3", fontSize: "13px", width: "110px" }}
+                          />
+                        </label>
+                        {weightKg && Number(weightKg) < 45 && (
+                          <span role="alert" style={{ color: "#c62828", fontSize: "12px" }}>
+                            Minimum booking weight is 45 kg.
+                          </span>
+                        )}
                         <input
                           type="text"
                           placeholder="Optional note (e.g. first-time donor)"
@@ -192,7 +214,7 @@ export function BookAppointment() {
                         />
                         <button
                           type="button"
-                          disabled={submitting}
+                          disabled={submitting || !weightKg || Number(weightKg) < 45}
                           onClick={() => handleBook(slot.id)}
                           style={{
                             padding: "8px 16px",
@@ -202,7 +224,7 @@ export function BookAppointment() {
                             borderRadius: "8px",
                             fontWeight: 700,
                             fontSize: "13px",
-                            cursor: submitting ? "not-allowed" : "pointer",
+                            cursor: submitting || !weightKg || Number(weightKg) < 45 ? "not-allowed" : "pointer",
                           }}
                         >
                           {submitting ? "Booking..." : "Confirm"}
@@ -212,6 +234,7 @@ export function BookAppointment() {
                           onClick={() => {
                             setBookingSlotId(null);
                             setNotes("");
+                            setWeightKg("");
                           }}
                           style={{
                             padding: "8px 12px",
@@ -282,6 +305,7 @@ export function BookAppointment() {
                   <th style={{ padding: "10px 12px" }}>Appointment Date</th>
                   <th style={{ padding: "10px 12px" }}>Time Window</th>
                   <th style={{ padding: "10px 12px" }}>Status</th>
+                  <th style={{ padding: "10px 12px" }}>Weight recorded</th>
                   <th style={{ padding: "10px 12px" }}>Notes</th>
                 </tr>
               </thead>
@@ -307,6 +331,7 @@ export function BookAppointment() {
                         {appt.status}
                       </span>
                     </td>
+                    <td style={{ padding: "12px" }}>{appt.weightKg == null ? "—" : `${appt.weightKg} kg`}</td>
                     <td style={{ padding: "12px", color: "#81716a" }}>{appt.notes || "None"}</td>
                   </tr>
                 ))}

@@ -66,6 +66,8 @@ export async function loginUser(input) {
     fullName: user.fullName,
     email: user.email,
     role: user.role,
+    dateOfBirth: user.dateOfBirth,
+    gender: user.gender,
     isActive: user.isActive ?? true,
     createdAt: user.createdAt,
   };

@@ -7,6 +7,7 @@
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "db:generate": "prisma generate",
+    "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --roots ../tests/unit-testing/backend --runInBand"
   },

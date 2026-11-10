@@ -14,6 +14,8 @@ const profileSelection = {
   fullName: true,
   email: true,
   role: true,
+  dateOfBirth: true,
+  gender: true,
   createdAt: true,
 };
 
@@ -35,22 +37,51 @@ export async function getDonorProfile(userId) {
 }
 
 /**
- * Updates the display name (full name) of an authenticated donor.
+ * Updates the display name and records missing donor eligibility details once.
  * Requirements: US-003.
  *
  * @async
  * @function updateDonorProfile
  * @param {string} userId - Unique identifier of the authenticated donor user.
- * @param {string} fullName - New full name string.
+ * @param {{fullName?: string, dateOfBirth?: string, gender?: string}} values - Donor profile fields to update.
  * @returns {Promise<Object | null>} Updated donor profile object, or null if update affected 0 rows.
  */
-export async function updateDonorProfile(userId, fullName) {
-  const result = await prisma.user.updateMany({
+export async function updateDonorProfile(userId, values) {
+  if (typeof values === "string") values = { fullName: values };
+  const current = await prisma.user.findFirst({
     where: { id: userId, role: "DONOR" },
-    data: { fullName },
+    select: { dateOfBirth: true, gender: true },
+  });
+  if (!current) return null;
+
+  const changingSavedDate = values.dateOfBirth !== undefined && current.dateOfBirth;
+  const changingSavedGender = values.gender !== undefined && current.gender;
+  if (changingSavedDate || changingSavedGender) {
+    const error = new Error("Date of birth and gender can only be recorded once.");
+    error.status = 400;
+    throw error;
+  }
+
+  const data = {};
+  if (values.fullName !== undefined) data.fullName = values.fullName;
+  if (values.dateOfBirth !== undefined) data.dateOfBirth = new Date(`${values.dateOfBirth}T00:00:00.000Z`);
+  if (values.gender !== undefined) data.gender = values.gender;
+  const result = await prisma.user.updateMany({
+    where: {
+      id: userId,
+      role: "DONOR",
+      ...(values.dateOfBirth !== undefined ? { dateOfBirth: null } : {}),
+      ...(values.gender !== undefined ? { gender: null } : {}),
+    },
+    data,
   });
 
   if (result.count === 0) {
+    if (values.dateOfBirth !== undefined || values.gender !== undefined) {
+      const error = new Error("Date of birth and gender can only be recorded once.");
+      error.status = 400;
+      throw error;
+    }
     return null;
   }
 
