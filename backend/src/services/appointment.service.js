@@ -12,8 +12,31 @@ import { prisma } from "../utils/prisma.js";
  */
 const bookingInputSchema = z.object({
   slotId: z.string().trim().min(1, "Please select an appointment slot."),
+  weightKg: z.coerce.number().finite("Enter a valid weight.").min(45, "You must weigh at least 45 kg to book an appointment."),
   notes: z.string().trim().max(255, "Notes cannot exceed 255 characters.").optional(),
 });
+
+function calculateAge(dateOfBirth, at = new Date()) {
+  let age = at.getUTCFullYear() - dateOfBirth.getUTCFullYear();
+  if (at.getUTCMonth() < dateOfBirth.getUTCMonth()
+    || (at.getUTCMonth() === dateOfBirth.getUTCMonth() && at.getUTCDate() < dateOfBirth.getUTCDate())) age -= 1;
+  return age;
+}
+
+function addCalendarMonths(date, months) {
+  const targetMonth = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1));
+  const lastDay = new Date(Date.UTC(targetMonth.getUTCFullYear(), targetMonth.getUTCMonth() + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(
+    targetMonth.getUTCFullYear(), targetMonth.getUTCMonth(), Math.min(date.getUTCDate(), lastDay),
+    date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds(), date.getUTCMilliseconds(),
+  ));
+}
+
+function rejectBooking(message) {
+  const error = new Error(message);
+  error.status = 400;
+  throw error;
+}
 
 /**
  * Books a donation appointment for an authenticated donor.
@@ -38,6 +61,31 @@ const bookingInputSchema = z.object({
  */
 export async function bookAppointment(donorId, input) {
   const values = bookingInputSchema.parse(input);
+
+  const donor = await prisma.user.findUnique({
+    where: { id: donorId },
+    select: { role: true, dateOfBirth: true, gender: true },
+  });
+  if (!donor || donor.role !== "DONOR") rejectBooking("Only donor accounts can book appointments.");
+  if (!donor.dateOfBirth || !donor.gender) {
+    rejectBooking("Complete your date of birth and gender in your donor profile before booking.");
+  }
+  const age = calculateAge(donor.dateOfBirth);
+  if (age < 18 || age > 65) rejectBooking("You must be between 18 and 65 years old to book an appointment.");
+
+  const intervalMonths = donor.gender === "FEMALE" ? 4 : donor.gender === "MALE" ? 3 : null;
+  if (!intervalMonths) rejectBooking("Your donor profile has an unsupported gender value. Please contact the blood bank.");
+  const previousAppointment = await prisma.appointment.findFirst({
+    where: { donorId },
+    orderBy: { createdAt: "desc" },
+    select: { createdAt: true },
+  });
+  if (previousAppointment) {
+    const allowedFrom = addCalendarMonths(previousAppointment.createdAt, intervalMonths);
+    if (new Date() < allowedFrom) {
+      rejectBooking(`You can book your next appointment on or after ${allowedFrom.toISOString().slice(0, 10)}.`);
+    }
+  }
 
   // 1. Check if the slot exists
   const slot = await prisma.appointmentSlot.findUnique({
@@ -78,6 +126,7 @@ export async function bookAppointment(donorId, input) {
       data: {
         donorId,
         slotId: values.slotId,
+        weightKg: values.weightKg,
         notes: values.notes || null,
         status: "SCHEDULED",
       },
