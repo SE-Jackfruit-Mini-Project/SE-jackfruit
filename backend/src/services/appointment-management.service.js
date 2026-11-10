@@ -48,11 +48,30 @@ function isFutureSlot(slot) {
  * @returns {Promise<Array<Object>>} List of appointment records ordered by creation date descending.
  */
 export async function getDonorAppointments(donorId) {
-  return prisma.appointment.findMany({
+  const appointments = await prisma.appointment.findMany({
     where: { donorId },
     include: { slot: true },
     orderBy: [{ createdAt: "desc" }],
   });
+
+  const dates = [...new Set(appointments.map(({ slot }) => slot?.date).filter(Boolean))];
+  if (dates.length === 0) return appointments;
+
+  const donationDates = await prisma.donation.findMany({
+    where: {
+      donorId,
+      donationDate: { in: dates.map((date) => new Date(`${date}T00:00:00.000Z`)) },
+    },
+    select: { donationDate: true },
+  });
+  const datesWithDonations = new Set(
+    donationDates.map(({ donationDate }) => donationDate.toISOString().slice(0, 10)),
+  );
+
+  return appointments.map((appointment) => ({
+    ...appointment,
+    donationRecordedOnDate: datesWithDonations.has(appointment.slot?.date),
+  }));
 }
 
 /**

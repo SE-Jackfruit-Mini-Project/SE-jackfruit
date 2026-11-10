@@ -24,7 +24,7 @@ function formatGroup(bloodGroup) {
  * @param {Function} [props.onAllocated] - Callback notifying parent views when an allocation succeeds.
  * @returns {JSX.Element} Rendered allocation interface.
  */
-export function AllocateRequests({ onAllocated }) {
+export function AllocateRequests({ onAllocated, refreshKey = 0 }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -58,7 +58,7 @@ export function AllocateRequests({ onAllocated }) {
 
   useEffect(() => {
     fetchRequests();
-  }, []);
+  }, [refreshKey]);
 
   /**
    * Triggers atomic allocation for a specific request.

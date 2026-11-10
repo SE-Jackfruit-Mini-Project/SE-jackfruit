@@ -270,7 +270,13 @@ export function ManageAppointments() {
         <div style={{ display: "grid", gap: "14px" }}>
           {appointments.map((appointment) => {
             const slot = appointment.slot;
-            const canManage = appointment.status === "SCHEDULED";
+            const slotHasPassed = slot
+              ? new Date(`${slot.date}T${slot.startTime}:00.000Z`) <= new Date()
+              : false;
+            const canManage = appointment.status === "SCHEDULED" && !slotHasPassed;
+            const displayStatus = appointment.status === "SCHEDULED" && slotHasPassed
+              ? appointment.donationRecordedOnDate ? "PAST — DONATION RECORDED" : "PAST — NO DONATION RECORDED"
+              : appointment.status;
             const isEditing = rescheduleId === appointment.id;
             const busy = busyId === appointment.id;
 
@@ -324,6 +330,17 @@ export function ManageAppointments() {
                       Notes: {appointment.notes || "None"}
                     </p>
 
+                    {appointment.status === "SCHEDULED" && slotHasPassed && (
+                      <p
+                        role="status"
+                        style={{ margin: "8px 0", color: appointment.donationRecordedOnDate ? "#2e7d32" : "#9a2f2b", fontSize: "13px" }}
+                      >
+                        {appointment.donationRecordedOnDate
+                          ? "A donation was recorded for this date. The appointment still needs staff status review."
+                          : "This appointment date has passed, and no donation is recorded for this date. Ask staff to review its status."}
+                      </p>
+                    )}
+
                     <span
                       style={{
                         display: "inline-block",
@@ -332,20 +349,20 @@ export function ManageAppointments() {
                         fontSize: "12px",
                         fontWeight: 700,
                         background:
-                          appointment.status === "SCHEDULED"
+                          displayStatus === "SCHEDULED" || displayStatus === "PAST — DONATION RECORDED"
                             ? "#e8f5e9"
-                            : appointment.status === "CANCELLED"
+                            : displayStatus === "CANCELLED" || displayStatus === "PAST — NO DONATION RECORDED"
                             ? "#ffebee"
                             : "#f5f5f5",
                         color:
-                          appointment.status === "SCHEDULED"
+                          displayStatus === "SCHEDULED" || displayStatus === "PAST — DONATION RECORDED"
                             ? "#2e7d32"
-                            : appointment.status === "CANCELLED"
+                            : displayStatus === "CANCELLED" || displayStatus === "PAST — NO DONATION RECORDED"
                             ? "#c62828"
                             : "#757575",
                       }}
                     >
-                      {appointment.status}
+                      {displayStatus}
                     </span>
                   </div>
 

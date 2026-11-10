@@ -20,6 +20,7 @@ const registrationSchema = z.object({
   email: z.string().trim().email("Enter a valid email address.").max(254, "Email is too long."),
   dateOfBirth: z.string().date("Enter a valid date of birth."),
   gender: z.enum(["FEMALE", "MALE"], { message: "Choose female or male." }),
+  bloodGroup: z.enum(["A_POSITIVE", "A_NEGATIVE", "B_POSITIVE", "B_NEGATIVE", "AB_POSITIVE", "AB_NEGATIVE", "O_POSITIVE", "O_NEGATIVE"], { message: "Choose a valid blood group." }),
   password: z
     .string()
     .min(8, "Use at least 8 characters for your password.")
@@ -65,6 +66,7 @@ export async function registerDonor(input) {
       passwordHash,
       dateOfBirth,
       gender: values.gender,
+      bloodGroup: values.bloodGroup,
       // Public registration always creates a donor; clients cannot choose privileged roles.
       role: "DONOR",
     },
@@ -75,6 +77,7 @@ export async function registerDonor(input) {
       role: true,
       dateOfBirth: true,
       gender: true,
+      bloodGroup: true,
       createdAt: true,
     },
   });

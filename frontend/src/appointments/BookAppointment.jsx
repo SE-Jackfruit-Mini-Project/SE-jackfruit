@@ -7,22 +7,96 @@
 
 import { useState, useEffect } from "react";
 
+function calculateAge(dateOfBirth, at = new Date()) {
+  const birthDate = new Date(dateOfBirth);
+  if (Number.isNaN(birthDate.getTime())) return null;
+  let age = at.getUTCFullYear() - birthDate.getUTCFullYear();
+  if (at.getUTCMonth() < birthDate.getUTCMonth()
+    || (at.getUTCMonth() === birthDate.getUTCMonth() && at.getUTCDate() < birthDate.getUTCDate())) age -= 1;
+  return age;
+}
+
+function addCalendarMonths(date, months) {
+  const targetMonth = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1));
+  const lastDay = new Date(Date.UTC(targetMonth.getUTCFullYear(), targetMonth.getUTCMonth() + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(
+    targetMonth.getUTCFullYear(), targetMonth.getUTCMonth(), Math.min(date.getUTCDate(), lastDay),
+    date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds(), date.getUTCMilliseconds(),
+  ));
+}
+
 /**
  * BookAppointment component for selecting and reserving blood donation slots.
  *
  * @component
  * @returns {JSX.Element} Rendered booking interface and donor appointment summary.
  */
-export function BookAppointment() {
+export function BookAppointment({ donor }) {
   // State for available slots, personal appointments, loading states, and form inputs
   const [slots, setSlots] = useState([]);
   const [myAppointments, setMyAppointments] = useState([]);
+  const [donationHistory, setDonationHistory] = useState([]);
+  const [donationHistoryLoaded, setDonationHistoryLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [bookingSlotId, setBookingSlotId] = useState(null);
   const [notes, setNotes] = useState("");
   const [weightKg, setWeightKg] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
+
+  const currentAge = donor?.dateOfBirth ? calculateAge(donor.dateOfBirth) : null;
+  const ageEligible = currentAge !== null && currentAge >= 18 && currentAge <= 65;
+  const intervalMonths = donor?.gender === "FEMALE" ? 4 : donor?.gender === "MALE" ? 3 : null;
+  const latestDonation = donationHistory.reduce((latest, donation) => {
+    if (!donation.donationDate) return latest;
+    return !latest || new Date(donation.donationDate) > new Date(latest.donationDate) ? donation : latest;
+  }, null);
+  const nextEligibleDate = latestDonation && intervalMonths
+    ? addCalendarMonths(new Date(latestDonation.donationDate), intervalMonths)
+    : null;
+  const intervalEligible = !nextEligibleDate || new Date() >= nextEligibleDate;
+  const weightEntered = weightKg !== "";
+  const weightEligible = weightEntered && Number(weightKg) >= 45;
+
+  let eligibilityStatus;
+  if (!ageEligible) {
+    eligibilityStatus = {
+      type: "error",
+      text: currentAge === null
+        ? "Your date of birth is missing. Complete your donor profile before booking."
+        : `Not eligible to book: your age is ${currentAge}; the allowed range is 18–65.`,
+    };
+  } else if (!intervalMonths) {
+    eligibilityStatus = {
+      type: "error",
+      text: "Your gender is missing from your donor profile. Complete your profile before booking.",
+    };
+  } else if (!donationHistoryLoaded) {
+    eligibilityStatus = {
+      type: "pending",
+      text: "Checking your recorded donation history before confirming eligibility.",
+    };
+  } else if (!intervalEligible) {
+    eligibilityStatus = {
+      type: "error",
+      text: `Your last accepted donation was on ${latestDonation.donationDate.slice(0, 10)}. You can book again on or after ${nextEligibleDate.toISOString().slice(0, 10)}.`,
+    };
+  } else if (!weightEntered) {
+    eligibilityStatus = {
+      type: "pending",
+      text: "Your age and waiting period since your last accepted donation meet the booking checks. Select a slot and enter your current weight to complete the check.",
+    };
+  } else if (!weightEligible) {
+    eligibilityStatus = {
+      type: "error",
+      text: "Not eligible to book: your current weight must be at least 45 kg.",
+    };
+  } else {
+    eligibilityStatus = {
+      type: "success",
+      text: "Eligible to book based on age, time since your last accepted donation, and current weight.",
+    };
+  }
 
   // Initial data loading on component mount
   useEffect(() => {
@@ -37,10 +111,12 @@ export function BookAppointment() {
    */
   async function loadData() {
     setLoading(true);
+    setDonationHistoryLoaded(false);
     try {
-      const [slotsRes, apptsRes] = await Promise.all([
+      const [slotsRes, apptsRes, donationsRes] = await Promise.all([
         fetch("/api/v1/appointment-slots", { credentials: "include" }),
         fetch("/api/v1/appointments/me", { credentials: "include" }),
+        fetch("/api/v1/donation-history", { credentials: "include" }),
       ]);
 
       if (slotsRes.ok) {
@@ -50,6 +126,11 @@ export function BookAppointment() {
       if (apptsRes.ok) {
         const apptsData = await apptsRes.json();
         setMyAppointments(apptsData.appointments || []);
+      }
+      if (donationsRes.ok) {
+        const donationsData = await donationsRes.json();
+        setDonationHistory(donationsData.donations || []);
+        setDonationHistoryLoaded(true);
       }
     } catch {
       console.error("Could not fetch appointment data.");
@@ -121,6 +202,23 @@ export function BookAppointment() {
         </div>
       )}
 
+      <div
+        role="status"
+        aria-live="polite"
+        style={{
+          padding: "14px 18px",
+          borderRadius: "12px",
+          fontSize: "14px",
+          fontWeight: 500,
+          background: eligibilityStatus.type === "success" ? "#e8f5e9" : eligibilityStatus.type === "error" ? "#ffebee" : "#fff8e1",
+          color: eligibilityStatus.type === "success" ? "#2e7d32" : eligibilityStatus.type === "error" ? "#c62828" : "#795548",
+          border: `1px solid ${eligibilityStatus.type === "success" ? "#c8e6c9" : eligibilityStatus.type === "error" ? "#ffcdd2" : "#ffe0b2"}`,
+        }}
+      >
+        <strong>Appointment eligibility: {eligibilityStatus.type === "success" ? "Eligible" : eligibilityStatus.type === "error" ? "Not eligible" : "Check in progress"}</strong>
+        <div style={{ marginTop: "4px" }}>{eligibilityStatus.text}</div>
+      </div>
+
       {/* Available Slots Section (AC-1, AC-2, AC-3) */}
       <section
         style={{
@@ -135,7 +233,7 @@ export function BookAppointment() {
         </h3>
         <p style={{ margin: "0 0 20px", color: "#81716a", fontSize: "14px" }}>
           Select an available slot and enter your current weight. Booking requires age 18–65,
-          weight of at least 45 kg, and a wait since the previous booking of 4 months for female donors or 3 months for male donors.
+          weight of at least 45 kg, and a wait since your last accepted donation of 4 months for female donors or 3 months for male donors. Cancelled or unattended bookings do not start the waiting period.
         </p>
 
         {loading ? (
@@ -214,7 +312,7 @@ export function BookAppointment() {
                         />
                         <button
                           type="button"
-                          disabled={submitting || !weightKg || Number(weightKg) < 45}
+                          disabled={submitting || !eligibilityStatus || eligibilityStatus.type !== "success"}
                           onClick={() => handleBook(slot.id)}
                           style={{
                             padding: "8px 16px",
@@ -224,7 +322,7 @@ export function BookAppointment() {
                             borderRadius: "8px",
                             fontWeight: 700,
                             fontSize: "13px",
-                            cursor: submitting || !weightKg || Number(weightKg) < 45 ? "not-allowed" : "pointer",
+                            cursor: submitting || eligibilityStatus.type !== "success" ? "not-allowed" : "pointer",
                           }}
                         >
                           {submitting ? "Booking..." : "Confirm"}

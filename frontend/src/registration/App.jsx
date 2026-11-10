@@ -8,7 +8,14 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
-const initialValues = { fullName: "", email: "", dateOfBirth: "", gender: "", password: "", confirmPassword: "" };
+const initialValues = { fullName: "", email: "", dateOfBirth: "", gender: "", bloodGroup: "", password: "", confirmPassword: "" };
+
+const BLOOD_GROUPS = [
+  ["A_POSITIVE", "A+"], ["A_NEGATIVE", "A-"],
+  ["B_POSITIVE", "B+"], ["B_NEGATIVE", "B-"],
+  ["AB_POSITIVE", "AB+"], ["AB_NEGATIVE", "AB-"],
+  ["O_POSITIVE", "O+"], ["O_NEGATIVE", "O-"],
+];
 
 /**
  * App component rendering the donor registration page.
@@ -58,6 +65,7 @@ export function App() {
           email: values.email,
           dateOfBirth: values.dateOfBirth,
           gender: values.gender,
+          bloodGroup: values.bloodGroup,
           password: values.password,
         }),
       });
@@ -146,6 +154,13 @@ export function App() {
             <option value="MALE">Male</option>
           </select>
           <p className="field-hint">Date of birth and gender are saved to your donor profile for appointment eligibility.</p>
+
+          <label htmlFor="bloodGroup">Blood group</label>
+          <select id="bloodGroup" name="bloodGroup" onChange={updateField} required value={values.bloodGroup}>
+            <option value="">Select blood group</option>
+            {BLOOD_GROUPS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+          <p className="field-hint">Your blood group is saved once and used for donation records.</p>
 
           <label htmlFor="password">Password</label>
           <input

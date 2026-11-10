@@ -13,7 +13,7 @@ import { useState, useEffect } from "react";
  * @component
  * @returns {JSX.Element} Rendered blood request review interface.
  */
-export function ReviewRequests() {
+export function ReviewRequests({ onReviewed }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("ALL");
@@ -77,6 +77,7 @@ export function ReviewRequests() {
 
       setMessage({ type: "success", text: result.message });
       await fetchRequests();
+      onReviewed?.();
     } catch {
       setMessage({ type: "error", text: "Network error. Please try again." });
     } finally {

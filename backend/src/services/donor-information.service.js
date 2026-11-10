@@ -12,6 +12,13 @@ import { prisma } from "../utils/prisma.js";
 const donorSummarySelection = {
   id: true,
   fullName: true,
+  dateOfBirth: true,
+  gender: true,
+  bloodGroup: true,
+};
+
+const donorDetailSelection = {
+  ...donorSummarySelection,
   email: true,
   createdAt: true,
 };
@@ -22,8 +29,8 @@ const donorSummarySelection = {
  *
  * @async
  * @function listDonors
- * @returns {Promise<Array<{id: string, fullName: string, email: string, createdAt: Date}>>}
- *          List of donor summary records.
+ * @returns {Promise<Array<{id: string, fullName: string, dateOfBirth: Date|null, gender: string|null, bloodGroup: string|null}>>}
+ *          Donor names and filter attributes, without contact or credential details.
  */
 export async function listDonors() {
   return prisma.user.findMany({
@@ -40,12 +47,12 @@ export async function listDonors() {
  * @async
  * @function getDonorInformation
  * @param {string} donorId - Unique user ID of the donor.
- * @returns {Promise<{id: string, fullName: string, email: string, createdAt: Date} | null>}
+ * @returns {Promise<Object | null>}
  *          Donor summary entity or null if not found.
  */
 export async function getDonorInformation(donorId) {
   return prisma.user.findFirst({
     where: { id: donorId, role: "DONOR" },
-    select: donorSummarySelection,
+    select: donorDetailSelection,
   });
 }
