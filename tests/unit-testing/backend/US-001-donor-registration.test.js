@@ -1,7 +1,15 @@
+/**
+ * @file US-001-donor-registration.test.js
+ * @description Unit test suite for US-001: Donor Registration.
+ * Verifies that registration properly normalizes email to lowercase, hashes passwords via bcrypt,
+ * assigns default role 'DONOR', validates input constraints using Zod, and preserves unique constraint violations.
+ */
+
 import { jest } from "@jest/globals";
 
 const create = jest.fn();
 
+// Mock Prisma client singleton
 jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: { user: { create } },
 }));

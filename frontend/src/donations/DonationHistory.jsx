@@ -1,18 +1,43 @@
+/**
+ * @file DonationHistory.jsx
+ * @description Donor donation history table component. Fetches and displays completed and accepted
+ * blood donation records for the authenticated donor in compliance with US-012.
+ */
+
 import { useEffect, useState } from "react";
 
+/**
+ * Formats blood group enum to human-friendly notation (e.g. A_POSITIVE -> A+).
+ *
+ * @param {string} value - Blood group enum string.
+ * @returns {string} Formatted notation or dash.
+ */
 function formatGroup(value) {
   return value?.replace("_POSITIVE", "+").replace("_NEGATIVE", "-") || "—";
 }
 
+/**
+ * Formats an ISO date string into a localized calendar date string.
+ *
+ * @param {string | Date} value - Date value.
+ * @returns {string} Formatted date string or dash.
+ */
 function formatDate(value) {
   return value ? new Date(value).toLocaleDateString() : "—";
 }
 
+/**
+ * DonationHistory component rendering past accepted donations.
+ *
+ * @component
+ * @returns {JSX.Element} Rendered donation history section.
+ */
 export function DonationHistory() {
   const [donations, setDonations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Retrieve donation records on component mount
   useEffect(() => {
     fetch("/api/v1/donation-history", { credentials: "include" })
       .then(async (response) => {

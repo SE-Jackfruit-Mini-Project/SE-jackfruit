@@ -1,19 +1,45 @@
+/**
+ * @file LoginPage.jsx
+ * @description User authentication view component. Renders the sign-in form for all user roles,
+ * validates email and password submission, manages error notifications, and redirects on success to `/dashboard`
+ * in accordance with US-002.
+ */
+
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
 const initialValues = { email: "", password: "" };
 
+/**
+ * LoginPage component for credential authentication.
+ *
+ * @component
+ * @returns {JSX.Element} Rendered login page.
+ */
 export function LoginPage() {
   const [values, setValues] = useState(initialValues);
   const [message, setMessage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
+  /**
+   * Updates state on input change.
+   *
+   * @function updateField
+   * @param {React.ChangeEvent<HTMLInputElement>} event - Form input event.
+   */
   function updateField(event) {
     setValues((current) => ({ ...current, [event.target.name]: event.target.value }));
     setMessage(null);
   }
 
+  /**
+   * Handles credential submission and session creation.
+   *
+   * @async
+   * @function handleSubmit
+   * @param {React.FormEvent} event - Form event.
+   */
   async function handleSubmit(event) {
     event.preventDefault();
     setSubmitting(true);

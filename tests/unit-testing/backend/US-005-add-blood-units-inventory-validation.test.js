@@ -1,3 +1,10 @@
+/**
+ * @file US-005-add-blood-units-inventory-validation.test.js
+ * @description Unit test suite for US-005: Add Blood Units with Inventory Validation.
+ * Tests inventory threshold calculations (`deriveStatus`: OUT_OF_STOCK, LOW, AVAILABLE),
+ * stock additions with audit movement tracking, and input validation bounds on unit counts.
+ */
+
 import { jest } from "@jest/globals";
 
 const upsert = jest.fn();
@@ -5,6 +12,7 @@ const update = jest.fn();
 const movementCreate = jest.fn();
 const transaction = jest.fn();
 
+// Mock Prisma client singleton
 jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: {
     $transaction: transaction,

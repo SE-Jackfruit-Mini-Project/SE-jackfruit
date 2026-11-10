@@ -1,3 +1,12 @@
+/**
+ * @file Dashboard.jsx
+ * @description Centralized role-based application dashboard. Inspects active user authentication
+ * session and conditionally renders specialized portals and widgets for:
+ * - Hospital Requesters (blood availability, request submission and tracking)
+ * - Staff and Admin (user management, request reviews, inventory adjustments, stock entries, slots, donor lookups, donation recordings)
+ * - Donors (appointment booking, appointment management, profile links, eligibility info, donation history)
+ */
+
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BloodRequests } from "../requests/BloodRequests.jsx";
@@ -14,12 +23,20 @@ import { ManageAppointments } from "../appointments/ManageAppointments.jsx";
 import { DonorInformation } from "../donors/DonorInformation.jsx";
 import { DonationHistory } from "../donations/DonationHistory.jsx";
 
+/**
+ * Dashboard component serving as the main view router once authenticated.
+ *
+ * @component
+ * @returns {JSX.Element | null} Rendered dashboard layout according to user role.
+ */
 export function Dashboard() {
+  // Session user profile, loading state, and reactive inventory version counter
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [inventoryVersion, setInventoryVersion] = useState(0);
   const navigate = useNavigate();
 
+  // Validate session on mount and redirect unauthenticated users to login
   useEffect(() => {
     fetch("/api/v1/auth/me", { credentials: "include" })
       .then((res) => {
@@ -31,6 +48,12 @@ export function Dashboard() {
       .finally(() => setLoading(false));
   }, [navigate]);
 
+  /**
+   * Destroys current session and redirects to login page.
+   *
+   * @async
+   * @function handleLogout
+   */
   async function handleLogout() {
     await fetch("/api/v1/auth/logout", {
       method: "POST",
@@ -190,13 +213,12 @@ export function Dashboard() {
           </section>
 
           {user?.role === "DONOR" && (
-     <>
-    <BookAppointment />
-    <ManageAppointments />
-    <DonationHistory />
-  </>
-)
-}
+            <>
+              <BookAppointment />
+              <ManageAppointments />
+              <DonationHistory />
+            </>
+          )}
         </>
       )}
     </main>

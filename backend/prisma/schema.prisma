@@ -1,3 +1,6 @@
+// Prisma Schema Definition for Blood Donation Management System
+// Defines database connections, enums, models, relationships, and table mappings.
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,6 +10,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// User access roles for Role-Based Access Control (RBAC)
 enum UserRole {
   DONOR
   HOSPITAL_REQUESTER
@@ -14,6 +18,7 @@ enum UserRole {
   ADMIN
 }
 
+// Operational lifecycle statuses for hospital blood requests
 enum RequestStatus {
   PENDING
   APPROVED
@@ -21,6 +26,7 @@ enum RequestStatus {
   ALLOCATED
 }
 
+// Permitted standardized ABO and Rh blood groups
 enum BloodGroup {
   A_POSITIVE
   A_NEGATIVE
@@ -32,12 +38,14 @@ enum BloodGroup {
   O_NEGATIVE
 }
 
+// Donor appointment status lifecycle
 enum AppointmentStatus {
   SCHEDULED
   COMPLETED
   CANCELLED
 }
 
+/// System user account entity supporting donors, staff, hospital requesters, and admins.
 model User {
   id                 String              @id @default(cuid())
   fullName           String              @map("full_name") @db.VarChar(120)
@@ -49,12 +57,13 @@ model User {
   bloodRequests      BloodRequest[]
   inventoryMovements InventoryMovement[]
   appointments       Appointment[]
-  donationsAsDonor   Donation[] @relation("DonationDonor")
-  donationsRecorded  Donation[] @relation("DonationRecorder")
+  donationsAsDonor   Donation[]          @relation("DonationDonor")
+  donationsRecorded  Donation[]          @relation("DonationRecorder")
 
   @@map("users")
 }
 
+/// Hospital emergency and standard blood requests submitted for staff review and allocation.
 model BloodRequest {
   id           String        @id @default(cuid())
   requesterId  String        @map("requester_id")
@@ -70,12 +79,14 @@ model BloodRequest {
   @@map("blood_requests")
 }
 
+// Derived stock availability level
 enum InventoryStatus {
   AVAILABLE
   LOW
   OUT_OF_STOCK
 }
 
+// Movement classification for audit trail logging
 enum InventoryMovementType {
   PURCHASE
   TRANSFER_IN
@@ -84,9 +95,9 @@ enum InventoryMovementType {
   ALLOCATION
 }
 
-// One row per blood group (aggregated quantity). Status is derived from
-// availableUnits in the service layer; the CHECK (available_units >= 0)
-// constraint is added in the migration.
+/// Aggregated inventory stock level per blood group.
+// Status is derived from availableUnits in the service layer;
+// the CHECK (available_units >= 0) constraint is added in the migration.
 model Inventory {
   id             String              @id @default(cuid())
   bloodGroup     BloodGroup          @unique @map("blood_group")
@@ -98,8 +109,8 @@ model Inventory {
   @@map("inventory")
 }
 
-// Append-only history of every change to inventory. delta is positive for
-// additions and negative for allocations.
+/// Append-only audit history of every unit delta applied to inventory.
+// Delta is positive for additions/donations and negative for allocations.
 model InventoryMovement {
   id          String                @id @default(cuid())
   inventoryId String                @map("inventory_id")
@@ -116,6 +127,7 @@ model InventoryMovement {
   @@map("inventory_movements")
 }
 
+/// HTTP session storage table managed by connect-pg-simple.
 model Session {
   sid    String   @id @db.VarChar
   sess   Json     @db.Json
@@ -125,6 +137,7 @@ model Session {
   @@map("sessions")
 }
 
+/// Configurable donor appointment booking time window slots.
 model AppointmentSlot {
   id           String        @id @default(cuid())
   date         String        @db.VarChar(10)
@@ -141,6 +154,7 @@ model AppointmentSlot {
   @@map("appointment_slots")
 }
 
+/// Scheduled donation appointment associating a donor with a specific time slot.
 model Appointment {
   id        String            @id @default(cuid())
   donorId   String            @map("donor_id")
@@ -156,6 +170,7 @@ model Appointment {
   @@map("appointments")
 }
 
+/// Completed blood donation event record submitted by medical staff.
 model Donation {
   id           String     @id @default(cuid())
   donorId      String     @map("donor_id")

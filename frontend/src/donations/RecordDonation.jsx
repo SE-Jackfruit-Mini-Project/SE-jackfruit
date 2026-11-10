@@ -1,3 +1,10 @@
+/**
+ * @file RecordDonation.jsx
+ * @description Clinical donation recording interface for healthcare staff. Allows staff members
+ * to select registered donors, record unit counts, dates, and acceptance decisions, and view
+ * recent donation audit history in accordance with US-011 (FR-022).
+ */
+
 import { useEffect, useState } from "react";
 
 const bloodGroups = [
@@ -23,7 +30,14 @@ const inputStyle = {
   fontSize: "14px",
 };
 
+/**
+ * RecordDonation component enabling healthcare staff to enter completed donation records.
+ *
+ * @component
+ * @returns {JSX.Element} Rendered donation intake form and recent donations log.
+ */
 export function RecordDonation() {
+  // State for registered donors, recent donation records, loading flags, and form input
   const [donors, setDonors] = useState([]);
   const [donations, setDonations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,10 +53,17 @@ export function RecordDonation() {
     notes: "",
   });
 
+  // Initial data loading on mount
   useEffect(() => {
     refreshData();
   }, []);
 
+  /**
+   * Refreshes both registered donor options and historical donation records.
+   *
+   * @async
+   * @function refreshData
+   */
   async function refreshData() {
     setLoading(true);
 
@@ -89,6 +110,12 @@ export function RecordDonation() {
     }
   }
 
+  /**
+   * Generic input change handler updating form state.
+   *
+   * @function handleInputChange
+   * @param {React.ChangeEvent<HTMLInputElement | HTMLSelectElement>} event - Input change event.
+   */
   function handleInputChange(event) {
     const { name, value } = event.target;
 
@@ -100,6 +127,13 @@ export function RecordDonation() {
     setMessage(null);
   }
 
+  /**
+   * Submits new donation record to backend API.
+   *
+   * @async
+   * @function handleSubmit
+   * @param {React.FormEvent} event - Form submission event.
+   */
   async function handleSubmit(event) {
     event.preventDefault();
     setSubmitting(true);

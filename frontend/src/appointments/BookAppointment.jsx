@@ -1,6 +1,20 @@
+/**
+ * @file BookAppointment.jsx
+ * @description Donor appointment booking component. Displays available donation slots, allows donors
+ * to reserve slots with optional notes, enforces real-time capacity checks, and renders the donor's
+ * booked appointments (US-004 / AC-1 through AC-7).
+ */
+
 import { useState, useEffect } from "react";
 
+/**
+ * BookAppointment component for selecting and reserving blood donation slots.
+ *
+ * @component
+ * @returns {JSX.Element} Rendered booking interface and donor appointment summary.
+ */
 export function BookAppointment() {
+  // State for available slots, personal appointments, loading states, and form inputs
   const [slots, setSlots] = useState([]);
   const [myAppointments, setMyAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -9,10 +23,17 @@ export function BookAppointment() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
 
+  // Initial data loading on component mount
   useEffect(() => {
     loadData();
   }, []);
 
+  /**
+   * Fetches available appointment slots and the donor's active appointments in parallel.
+   *
+   * @async
+   * @function loadData
+   */
   async function loadData() {
     setLoading(true);
     try {
@@ -36,6 +57,13 @@ export function BookAppointment() {
     }
   }
 
+  /**
+   * Submits an appointment booking request for a specified slot ID.
+   *
+   * @async
+   * @function handleBook
+   * @param {string} slotId - Selected slot identifier.
+   */
   async function handleBook(slotId) {
     setSubmitting(true);
     setMessage(null);

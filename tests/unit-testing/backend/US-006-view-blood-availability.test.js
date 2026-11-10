@@ -1,7 +1,15 @@
+/**
+ * @file US-006-view-blood-availability.test.js
+ * @description Unit test suite for US-006: View Blood Availability.
+ * Verifies that availability queries always output the complete catalog of all 8 blood groups
+ * (defaulting unseeded groups to 0 units and OUT_OF_STOCK) without side effects on inventory records.
+ */
+
 import { jest } from "@jest/globals";
 
 const findMany = jest.fn();
 
+// Mock Prisma client singleton
 jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: {
     inventory: { findMany },
