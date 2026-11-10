@@ -1,11 +1,29 @@
+/**
+ * @file appointment.routes.js
+ * @description Express router managing donor appointment booking and donor appointment inquiries.
+ * Guarded by `requireAuth` and `requireRole("DONOR")` in compliance with US-004.
+ */
+
 import { Router } from "express";
 import { requireAuth, requireRole } from "../middleware/auth.middleware.js";
 import { bookAppointment, getDonorAppointments } from "../services/appointment.service.js";
 
-
 export const appointmentRouter = Router();
 
-// Donor books an available appointment slot (AC-3, AC-4, AC-5, AC-6, AC-7)
+/**
+ * POST /api/appointments
+ * Books an available appointment slot for the authenticated donor.
+ * Requirements: US-004 (AC-3, AC-4, AC-5, AC-6, AC-7).
+ *
+ * @name BookAppointment
+ * @route {POST} /api/appointments
+ * @authentication Requires active session with role DONOR
+ * @bodyparam {string} slotId - Target slot ID to reserve
+ * @bodyparam {string} [notes] - Optional donor notes
+ * @returns {201} Booking confirmation and created appointment entity
+ * @returns {400} If validation fails, slot is full, or donor already has active booking
+ * @returns {404} If selected slot does not exist
+ */
 appointmentRouter.post("/", requireAuth, requireRole("DONOR"), async (request, response, next) => {
   try {
     const appointment = await bookAppointment(request.session.user.id, request.body);
@@ -32,7 +50,15 @@ appointmentRouter.post("/", requireAuth, requireRole("DONOR"), async (request, r
   }
 });
 
-// Donor retrieves own appointment bookings
+/**
+ * GET /api/appointments/me
+ * Retrieves all appointments booked by the authenticated donor.
+ *
+ * @name GetMyAppointments
+ * @route {GET} /api/appointments/me
+ * @authentication Requires active session with role DONOR
+ * @returns {200} List of donor's booked appointments with slot details
+ */
 appointmentRouter.get("/me", requireAuth, requireRole("DONOR"), async (request, response, next) => {
   try {
     const appointments = await getDonorAppointments(request.session.user.id);

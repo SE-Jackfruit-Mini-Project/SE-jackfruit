@@ -1,6 +1,18 @@
+/**
+ * @file EligibilityPage.jsx
+ * @description Donor eligibility guidance page component. Renders official blood bank criteria
+ * or fallback messaging informing users when medical guidance is pending review in compliance with US-008.
+ */
+
 import { Link } from "react-router-dom";
 import { getEligibilityState } from "./eligibility-content.js";
 
+/**
+ * EligibilityPage component presenting donor criteria.
+ *
+ * @component
+ * @returns {JSX.Element} Rendered eligibility guidance page.
+ */
 export function EligibilityPage() {
   const eligibility = getEligibilityState();
   return (

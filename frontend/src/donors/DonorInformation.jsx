@@ -1,15 +1,39 @@
+/**
+ * @file DonorInformation.jsx
+ * @description Staff donor directory viewing component. Displays registered donors and provides
+ * modal/inline inspection of individual donor registration profiles in compliance with US-010.
+ */
+
 import { useEffect, useState } from "react";
 
+/**
+ * Formats date into a localized calendar date string.
+ *
+ * @param {string | Date} value - Date value.
+ * @returns {string} Formatted date.
+ */
 function formatDate(value) {
   return value ? new Date(value).toLocaleDateString() : "—";
 }
 
+/**
+ * DonorInformation component for staff inspection of registered donors.
+ *
+ * @component
+ * @returns {JSX.Element} Rendered donor directory interface.
+ */
 export function DonorInformation() {
   const [donors, setDonors] = useState([]);
   const [selectedDonor, setSelectedDonor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  /**
+   * Loads all registered donors.
+   *
+   * @async
+   * @function loadDonors
+   */
   async function loadDonors() {
     setLoading(true);
     setError(null);
@@ -27,6 +51,13 @@ export function DonorInformation() {
     }
   }
 
+  /**
+   * Fetches specific donor details for the selected donor ID.
+   *
+   * @async
+   * @function viewDonor
+   * @param {string} donorId - Unique user ID of the donor.
+   */
   async function viewDonor(donorId) {
     setError(null);
     try {

@@ -1,3 +1,9 @@
+/**
+ * @file StockEntry.jsx
+ * @description Staff manual stock intake component. Allows staff to record additions from
+ * external sources (purchases, transfers, stock corrections) in compliance with US-005 (FR-023).
+ */
+
 import { useState } from "react";
 
 const BLOOD_GROUPS = [
@@ -29,17 +35,38 @@ const selectStyle = {
   font: "inherit",
 };
 
+/**
+ * StockEntry component for manual blood unit intake.
+ *
+ * @component
+ * @param {Object} props - Component properties.
+ * @param {Function} [props.onAdded] - Callback notifying parent components when stock is added.
+ * @returns {JSX.Element} Rendered stock intake form.
+ */
 export function StockEntry({ onAdded }) {
   const [formData, setFormData] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
 
+  /**
+   * Updates state on input changes.
+   *
+   * @function handleInputChange
+   * @param {React.ChangeEvent<HTMLInputElement | HTMLSelectElement>} event - Input event.
+   */
   function handleInputChange(event) {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setMessage(null);
   }
 
+  /**
+   * Submits stock addition request to the backend.
+   *
+   * @async
+   * @function handleSubmit
+   * @param {React.FormEvent} event - Form submission event.
+   */
   async function handleSubmit(event) {
     event.preventDefault();
     setSubmitting(true);

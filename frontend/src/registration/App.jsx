@@ -1,19 +1,45 @@
+/**
+ * @file App.jsx
+ * @description Donor registration view component. Provides public registration form with
+ * client-side password confirmation matching, communicates with registration endpoint,
+ * and navigates to `/login` upon successful account creation in compliance with US-001.
+ */
+
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
 const initialValues = { fullName: "", email: "", password: "", confirmPassword: "" };
 
+/**
+ * App component rendering the donor registration page.
+ *
+ * @component
+ * @returns {JSX.Element} Rendered registration view.
+ */
 export function App() {
   const [values, setValues] = useState(initialValues);
   const [message, setMessage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
+  /**
+   * Updates state on input change.
+   *
+   * @function updateField
+   * @param {React.ChangeEvent<HTMLInputElement>} event - Form input event.
+   */
   function updateField(event) {
     setValues((current) => ({ ...current, [event.target.name]: event.target.value }));
     setMessage(null);
   }
 
+  /**
+   * Validates matching passwords and submits registration details.
+   *
+   * @async
+   * @function handleSubmit
+   * @param {React.FormEvent} event - Form event.
+   */
   async function handleSubmit(event) {
     event.preventDefault();
     if (values.password !== values.confirmPassword) {

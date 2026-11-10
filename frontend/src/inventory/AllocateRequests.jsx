@@ -1,9 +1,29 @@
+/**
+ * @file AllocateRequests.jsx
+ * @description Blood request allocation UI component for staff. Lists approved hospital blood requests
+ * and allows staff to trigger inventory deductions and status transitions to ALLOCATED (US-007 / FR-027, FR-028, FR-037).
+ */
+
 import { useEffect, useState } from "react";
 
+/**
+ * Converts blood group enum to human-friendly shorthand notation.
+ *
+ * @param {string} bloodGroup - Blood group enum.
+ * @returns {string} Formatted notation.
+ */
 function formatGroup(bloodGroup) {
   return bloodGroup.replace("_POSITIVE", "+").replace("_NEGATIVE", "-");
 }
 
+/**
+ * AllocateRequests component for assigning inventory to approved requests.
+ *
+ * @component
+ * @param {Object} props - Component properties.
+ * @param {Function} [props.onAllocated] - Callback notifying parent views when an allocation succeeds.
+ * @returns {JSX.Element} Rendered allocation interface.
+ */
 export function AllocateRequests({ onAllocated }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,6 +31,12 @@ export function AllocateRequests({ onAllocated }) {
   const [allocatingId, setAllocatingId] = useState(null);
   const [message, setMessage] = useState(null);
 
+  /**
+   * Fetches approved blood requests awaiting inventory allocation.
+   *
+   * @async
+   * @function fetchRequests
+   */
   async function fetchRequests() {
     setLoading(true);
     setLoadError(null);
@@ -34,6 +60,13 @@ export function AllocateRequests({ onAllocated }) {
     fetchRequests();
   }, []);
 
+  /**
+   * Triggers atomic allocation for a specific request.
+   *
+   * @async
+   * @function handleAllocate
+   * @param {Object} item - The request record to allocate.
+   */
   async function handleAllocate(item) {
     setAllocatingId(item.id);
     setMessage(null);

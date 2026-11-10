@@ -1,3 +1,10 @@
+/**
+ * @file ManageInventory.jsx
+ * @description Staff inventory adjustment management component. Enables authorized personnel to
+ * perform manual unit corrections (e.g. damaged, expired, or audit reconciliation) with automatic
+ * threshold status updates in compliance with FR-027.
+ */
+
 import { useEffect, useState } from "react";
 
 const STATUS_STYLES = {
@@ -6,10 +13,25 @@ const STATUS_STYLES = {
   OUT_OF_STOCK: { label: "Out of stock", background: "#fee2e2", color: "#991b1b" },
 };
 
+/**
+ * Formats blood group enum to readable display notation.
+ *
+ * @param {string} bloodGroup - Blood group enum.
+ * @returns {string} Formatted label.
+ */
 function formatGroup(bloodGroup) {
   return bloodGroup.replace("_POSITIVE", "+").replace("_NEGATIVE", "-");
 }
 
+/**
+ * ManageInventory component for staff inventory audits and stock adjustments.
+ *
+ * @component
+ * @param {Object} props - Component properties.
+ * @param {number} [props.refreshKey=0] - Dependency key for re-fetching availability.
+ * @param {Function} [props.onChanged] - Callback executed when stock is successfully adjusted.
+ * @returns {JSX.Element} Rendered inventory management interface.
+ */
 export function ManageInventory({ refreshKey = 0, onChanged }) {
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,6 +40,12 @@ export function ManageInventory({ refreshKey = 0, onChanged }) {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
 
+  /**
+   * Fetches the current inventory overview from the backend API.
+   *
+   * @async
+   * @function fetchInventory
+   */
   async function fetchInventory() {
     setLoading(true);
     setLoadError(null);
@@ -41,17 +69,36 @@ export function ManageInventory({ refreshKey = 0, onChanged }) {
     fetchInventory();
   }, [refreshKey]);
 
+  /**
+   * Selects a blood group for inline stock adjustment.
+   *
+   * @function selectGroup
+   * @param {string} bloodGroup - Blood group enum string.
+   */
   function selectGroup(bloodGroup) {
     setForm({ bloodGroup, delta: "", reason: "" });
     setMessage(null);
   }
 
+  /**
+   * Updates adjustment form values.
+   *
+   * @function handleChange
+   * @param {React.ChangeEvent<HTMLInputElement>} event - Form input change event.
+   */
   function handleChange(event) {
     const { name, value } = event.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     setMessage(null);
   }
 
+  /**
+   * Submits inventory adjustment patch request.
+   *
+   * @async
+   * @function handleSubmit
+   * @param {React.FormEvent} event - Form submission event.
+   */
   async function handleSubmit(event) {
     event.preventDefault();
     setSubmitting(true);
