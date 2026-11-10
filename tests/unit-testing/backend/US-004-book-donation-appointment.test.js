@@ -116,7 +116,7 @@ describe("US-004 book donation appointment", () => {
       isAvailable: true,
     });
 
-    findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
+    findFirst.mockResolvedValueOnce({
       id: "appointment-1",
       status: "SCHEDULED",
     });

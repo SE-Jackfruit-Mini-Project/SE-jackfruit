@@ -16,6 +16,6 @@ describe("US-008 donor eligibility information", () => {
     expect(eligibility.content).toContain("at least 45 kg");
     expect(eligibility.content).toContain("4 calendar months");
     expect(eligibility.content).toContain("3 calendar months");
-    expect(eligibility.content).toContain("do not determine whether donating blood is medically safe");
+    expect(eligibility.content).toContain("After staff or admin records an accepted donation");
   });
 });
