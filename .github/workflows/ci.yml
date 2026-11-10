@@ -1,5 +1,5 @@
 # Continuous Integration Workflow for SE-Jackfruit
-# Validates both backend unit test suites (Jest with ES modules) and frontend test/build pipelines (Vitest & Vite)
+# Validates backend unit, component, and system integration suites plus frontend tests and build
 # on pushes and pull requests targeting the main branch.
 
 name: Test and build
@@ -11,7 +11,7 @@ on:
     branches: [main]
 
 jobs:
-  # Backend CI job: Sets up Node 22, installs dependencies, and runs backend unit tests
+  # Backend CI job: Sets up Node 22 and runs unit, component, and system integration tests
   backend:
     name: Backend tests
     runs-on: ubuntu-latest
@@ -25,6 +25,8 @@ jobs:
           node-version: 22
       - run: npm install
       - run: npm test
+      - run: npm run test:component
+      - run: npm run test:integration
 
   # Frontend CI job: Sets up Node 22, installs dependencies, runs Vitest unit tests, and validates Vite production build
   frontend:
