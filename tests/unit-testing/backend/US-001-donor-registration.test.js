@@ -34,6 +34,7 @@ describe("US-001 donor registration", () => {
       email: "DONOR@EXAMPLE.COM",
       dateOfBirth: "1995-06-15",
       gender: "FEMALE",
+      bloodGroup: "O_POSITIVE",
       password: "donor-password",
     });
 
@@ -41,6 +42,7 @@ describe("US-001 donor registration", () => {
       data: expect.objectContaining({
         email: "donor@example.com",
         role: "DONOR",
+        bloodGroup: "O_POSITIVE",
       }),
     }));
     expect(create.mock.calls[0][0].data.passwordHash).toMatch(/^\$2[aby]\$\d{2}\$/);
@@ -60,6 +62,7 @@ describe("US-001 donor registration", () => {
       email: "one@example.com",
       dateOfBirth: "1995-06-15",
       gender: "MALE",
+      bloodGroup: "A_NEGATIVE",
       password: "password123",
     }))
       .rejects.toMatchObject({ code: "P2002" });

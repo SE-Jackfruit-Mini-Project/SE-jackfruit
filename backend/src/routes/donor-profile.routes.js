@@ -42,6 +42,7 @@ const updateProfileSchema = z.object({
   fullName: z.string().trim().min(1, "Enter your name.").max(120, "Name is too long.").optional(),
   dateOfBirth: z.string().date("Enter a valid date of birth.").optional(),
   gender: z.enum(["FEMALE", "MALE"], { message: "Choose female or male." }).optional(),
+  bloodGroup: z.enum(["A_POSITIVE", "A_NEGATIVE", "B_POSITIVE", "B_NEGATIVE", "AB_POSITIVE", "AB_NEGATIVE", "O_POSITIVE", "O_NEGATIVE"], { message: "Choose a valid blood group." }).optional(),
 }).strict().refine((values) => Object.keys(values).length > 0, "Provide at least one profile field.");
 
 /**
@@ -73,6 +74,7 @@ donorProfileRouter.put("/me", async (request, response, next) => {
     request.session.user.fullName = profile.fullName;
     request.session.user.dateOfBirth = profile.dateOfBirth;
     request.session.user.gender = profile.gender;
+    request.session.user.bloodGroup = profile.bloodGroup;
     return response.status(200).json({
       message: "Your profile has been updated.",
       user: profile,

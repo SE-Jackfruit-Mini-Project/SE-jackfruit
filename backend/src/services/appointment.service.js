@@ -75,13 +75,13 @@ export async function bookAppointment(donorId, input) {
 
   const intervalMonths = donor.gender === "FEMALE" ? 4 : donor.gender === "MALE" ? 3 : null;
   if (!intervalMonths) rejectBooking("Your donor profile has an unsupported gender value. Please contact the blood bank.");
-  const previousAppointment = await prisma.appointment.findFirst({
-    where: { donorId },
-    orderBy: { createdAt: "desc" },
-    select: { createdAt: true },
+  const previousDonation = await prisma.donation.findFirst({
+    where: { donorId, accepted: true },
+    orderBy: [{ donationDate: "desc" }, { createdAt: "desc" }],
+    select: { donationDate: true },
   });
-  if (previousAppointment) {
-    const allowedFrom = addCalendarMonths(previousAppointment.createdAt, intervalMonths);
+  if (previousDonation) {
+    const allowedFrom = addCalendarMonths(previousDonation.donationDate, intervalMonths);
     if (new Date() < allowedFrom) {
       rejectBooking(`You can book your next appointment on or after ${allowedFrom.toISOString().slice(0, 10)}.`);
     }
