@@ -1,5 +1,5 @@
 /**
- * @file inventory-adjust.test.js
+ * @file US-014-manage-inventory-status.test.js
  * @description Integration unit test suite for inventory adjustment endpoint (PATCH /api/v1/inventory/:bloodGroup).
  * Verifies:
  * - Authentication (401) and role restriction (403 for non-staff/non-admin)
