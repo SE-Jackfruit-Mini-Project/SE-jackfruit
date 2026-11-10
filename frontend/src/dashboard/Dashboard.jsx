@@ -1,14 +1,18 @@
-
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BloodRequests } from "../requests/BloodRequests.jsx";
 import { ReviewRequests } from "../requests/ReviewRequests.jsx";
+import { ManageUsers } from "../admin/ManageUsers.jsx";
 import { ManageSlots } from "../slots/ManageSlots.jsx";
 import { BookAppointment } from "../appointments/BookAppointment.jsx";
 import { StockEntry } from "../inventory/StockEntry.jsx";
 import { BloodAvailability } from "../inventory/BloodAvailability.jsx";
+import { ManageInventory } from "../inventory/ManageInventory.jsx";
+import { AllocateRequests } from "../inventory/AllocateRequests.jsx";
 import { RecordDonation } from "../donations/RecordDonation.jsx";
 import { ManageAppointments } from "../appointments/ManageAppointments.jsx";
+import { DonorInformation } from "../donors/DonorInformation.jsx";
+import { DonationHistory } from "../donations/DonationHistory.jsx";
 
 export function Dashboard() {
   const [user, setUser] = useState(null);
@@ -123,13 +127,22 @@ export function Dashboard() {
             gap: "28px",
           }}
         >
+          {user?.role === "ADMIN" && <ManageUsers currentAdminId={user.id} />}
           <ReviewRequests />
-
           <BloodAvailability refreshKey={inventoryVersion} />
           <StockEntry
             onAdded={() => setInventoryVersion((version) => version + 1)}
           />
+          <ManageInventory
+            refreshKey={inventoryVersion}
+            onChanged={() => setInventoryVersion((version) => version + 1)}
+          />
+
+          <AllocateRequests
+            onAllocated={() => setInventoryVersion((version) => version + 1)}
+          />
           <ManageSlots />
+          <DonorInformation />
           <RecordDonation />
         </div>
       ) : (
@@ -183,6 +196,7 @@ export function Dashboard() {
      <>
     <BookAppointment />
     <ManageAppointments />
+    <DonationHistory />
   </>
 )
 }
