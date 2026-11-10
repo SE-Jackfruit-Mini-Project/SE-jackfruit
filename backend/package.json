@@ -10,6 +10,7 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --roots ../tests/unit-testing/backend --runInBand",
+    "test:component": "node --experimental-vm-modules node_modules/jest/bin/jest.js --roots ../tests/component-testing --runInBand",
     "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js --roots ../tests/integration-testing/backend --runInBand"
   },
   "dependencies": {
