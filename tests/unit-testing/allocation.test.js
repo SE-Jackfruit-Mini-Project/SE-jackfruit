@@ -1,3 +1,15 @@
+/**
+ * @file allocation.test.js
+ * @description Integration unit test suite for blood request allocation routes (/api/v1/allocations).
+ * Simulates in-memory transactional semantics with rollback support, testing:
+ * - Authentication (401) and authorization (403 for DONOR/HOSPITAL_REQUESTER)
+ * - Approved request queue retrieval (FIFO ordering)
+ * - Atomic allocation with inventory decrement and movement audit creation
+ * - Zero stock threshold transitions (OUT_OF_STOCK)
+ * - Insufficient inventory rejection (409) without side effects
+ * - Concurrency protection preventing race-condition double allocation
+ */
+
 import { jest } from "@jest/globals";
 import express from "express";
 import request from "supertest";

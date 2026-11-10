@@ -1,9 +1,19 @@
+/**
+ * @file US-017-manage-users-access.test.js
+ * @description Unit test suite for US-017: Manage Users and Access.
+ * Tests administrator retrieval of all system user accounts, role updates within permitted sets,
+ * invalid role rejection, administrator self-demotion prevention (CANNOT_CHANGE_OWN_ROLE),
+ * account activation/deactivation, administrator self-deactivation prevention (CANNOT_DEACTIVATE_SELF),
+ * non-existent user handling, and non-boolean status rejection.
+ */
+
 import { jest } from "@jest/globals";
 
 const findMany = jest.fn();
 const findUnique = jest.fn();
 const update = jest.fn();
 
+// Mock Prisma client singleton
 jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: {
     user: { findMany, findUnique, update },

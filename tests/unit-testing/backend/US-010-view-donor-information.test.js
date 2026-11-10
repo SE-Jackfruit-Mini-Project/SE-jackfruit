@@ -1,8 +1,16 @@
+/**
+ * @file US-010-view-donor-information.test.js
+ * @description Unit test suite for US-010: View Donor Information.
+ * Verifies that donor directory listings exclude sensitive password hash fields
+ * and properly restrict retrieval to accounts with role 'DONOR'.
+ */
+
 import { jest } from "@jest/globals";
 
 const findMany = jest.fn();
 const findFirst = jest.fn();
 
+// Mock Prisma client singleton
 jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: { user: { findMany, findFirst } },
 }));

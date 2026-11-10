@@ -1,3 +1,13 @@
+/**
+ * @file inventory.test.js
+ * @description Integration unit test suite for inventory stock additions and availability catalog.
+ * Verifies:
+ * - deriveStatus logic for threshold-based status reporting
+ * - POST /api/v1/inventory/stock endpoint security, role gates, entry creation, and Zod validation
+ * - GET /api/v1/inventory/availability endpoint security and 8-group catalog guarantees
+ * - Database read error propagation
+ */
+
 import { jest } from "@jest/globals";
 import express from "express";
 import request from "supertest";

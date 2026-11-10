@@ -1,5 +1,19 @@
+/**
+ * @file ManageSlots.jsx
+ * @description Staff appointment slot creation and schedule management component.
+ * Enables healthcare personnel to create new donation slots with capacity thresholds,
+ * validates chronological and overlap constraints, and renders current schedule tables
+ * in compliance with US-009.
+ */
+
 import { useState, useEffect } from "react";
 
+/**
+ * ManageSlots component for staff scheduling of appointment windows.
+ *
+ * @component
+ * @returns {JSX.Element} Rendered slot creation form and existing slot overview.
+ */
 export function ManageSlots() {
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,6 +33,12 @@ export function ManageSlots() {
     fetchSlots();
   }, []);
 
+  /**
+   * Fetches all scheduled appointment slots from backend.
+   *
+   * @async
+   * @function fetchSlots
+   */
   async function fetchSlots() {
     try {
       const response = await fetch("/api/v1/appointment-slots", { credentials: "include" });
@@ -33,12 +53,25 @@ export function ManageSlots() {
     }
   }
 
+  /**
+   * Updates slot creation form input state.
+   *
+   * @function handleInputChange
+   * @param {React.ChangeEvent<HTMLInputElement>} event - Form input event.
+   */
   function handleInputChange(event) {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setMessage(null);
   }
 
+  /**
+   * Submits new appointment slot creation payload to the backend.
+   *
+   * @async
+   * @function handleSubmit
+   * @param {React.FormEvent} event - Form event.
+   */
   async function handleSubmit(event) {
     event.preventDefault();
     setSubmitting(true);

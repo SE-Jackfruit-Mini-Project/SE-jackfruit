@@ -1,3 +1,11 @@
+/**
+ * @file US-011-record-completed-donation.test.js
+ * @description Unit test suite for US-011: Record Completed Blood Donation.
+ * Verifies staff selection of registered donors, recent donation inquiries,
+ * atomic updates of blood inventory on accepted donations, rejection handling without inventory mutations,
+ * and rejection of unregistered donors or invalid unit quantities.
+ */
+
 import { jest } from "@jest/globals";
 
 const userFindMany = jest.fn();
@@ -9,6 +17,7 @@ const inventoryUpdate = jest.fn();
 const movementCreate = jest.fn();
 const transaction = jest.fn();
 
+// Mock Prisma client singleton
 jest.unstable_mockModule(
   "../../../backend/src/utils/prisma.js",
   () => ({
@@ -24,6 +33,7 @@ jest.unstable_mockModule(
   })
 );
 
+// Mock inventory service helper
 jest.unstable_mockModule(
   "../../../backend/src/services/inventory.service.js",
   () => ({
@@ -34,7 +44,6 @@ jest.unstable_mockModule(
     }),
   })
 );
-
 
 const {
   getRegisteredDonors,

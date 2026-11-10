@@ -1,5 +1,13 @@
+/**
+ * @file styles.css
+ * @description Global stylesheet and design system for Jackfruit Blood Donation Application.
+ * Includes typography imports (DM Sans, Manrope), root design tokens, shared layout shells,
+ * form components, responsive breakpoints, and role portal styling.
+ */
+
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap");
 
+/* --- Design Tokens & Typography --- */
 :root {
   font-family: "DM Sans", sans-serif;
   color: #302522;
@@ -14,6 +22,7 @@ body { margin: 0; min-width: 320px; min-height: 100vh; }
 
 button, input { font: inherit; }
 
+/* --- Authentication & Registration Split-Screen Layout --- */
 .page-shell {
   display: grid;
   grid-template-columns: minmax(300px, 0.92fr) minmax(400px, 1.08fr);
@@ -67,6 +76,7 @@ h1 {
 
 .intro-copy { max-width: 370px; color: #f1d5ce; line-height: 1.7; }
 
+/* --- Decorative Blood Drop Illustrations --- */
 .drop-art { position: relative; flex: 1; min-height: 190px; margin-top: 32px; }
 
 .drop {
@@ -85,6 +95,7 @@ h1 {
 .drop-three { right: 58%; top: 56%; width: 47px; height: 61px; background: #bd786c; box-shadow: inset -6px -8px 0 #984c47; }
 .art-caption { position: absolute; bottom: 4px; left: 0; color: #edcfc4; font-size: 13px; }
 
+/* --- Forms & Interactive Inputs --- */
 .form-panel { display: flex; flex-direction: column; justify-content: center; width: min(100%, 520px); margin: auto; padding: 24px; }
 .form-heading .eyebrow { margin-top: 0; }
 h2 { margin: 0; font-size: clamp(30px, 3vw, 42px); }
@@ -117,14 +128,19 @@ button {
 }
 button:hover:not(:disabled) { background: #6e2522; }
 button:disabled { cursor: wait; opacity: 0.72; }
+
+/* --- Validation Alert Messages --- */
 .form-message { margin: 7px 0 0; padding: 11px 13px; border-radius: 10px; font-size: 13px; }
 .form-message.error { background: #fff0ed; color: #9f2d27; }
 .form-message.success { background: #eaf6ed; color: #23653b; }
 .privacy-note { margin: 20px 0 0; color: #94847c; font-size: 12px; text-align: center; }
+
+/* --- Dashboard Navigation Links --- */
 .dashboard-profile-link { display: inline-flex; margin-top: 16px; color: #862f2b; font-weight: 700; text-decoration: none; }
 .dashboard-profile-link:hover { text-decoration: underline; }
 .dashboard-donor-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 22px; }
 
+/* --- Donor Profile Page Layout --- */
 .profile-page {
   display: grid;
   min-height: 100vh;
@@ -142,6 +158,7 @@ button:disabled { cursor: wait; opacity: 0.72; }
 .field-hint { margin: -4px 0 4px; color: #94847c; font-size: 12px; }
 .profile-state { margin-top: 26px; color: #81716a; }
 
+/* --- Eligibility Guidance Page Layout --- */
 .eligibility-page {
   display: grid;
   min-height: 100vh;
@@ -174,6 +191,7 @@ button:disabled { cursor: wait; opacity: 0.72; }
 .eligibility-links a:hover { text-decoration: underline; }
 .eligibility-links a:focus-visible { outline: 3px solid #a34941; outline-offset: 4px; }
 
+/* --- Media Queries / Responsive Viewports --- */
 @media (max-width: 560px) {
   .profile-page { padding: 76px 16px 20px; }
   .profile-card { padding: 28px 22px; }

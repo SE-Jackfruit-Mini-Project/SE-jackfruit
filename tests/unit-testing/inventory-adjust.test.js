@@ -1,3 +1,14 @@
+/**
+ * @file inventory-adjust.test.js
+ * @description Integration unit test suite for inventory adjustment endpoint (PATCH /api/v1/inventory/:bloodGroup).
+ * Verifies:
+ * - Authentication (401) and role restriction (403 for non-staff/non-admin)
+ * - Positive adjustments incrementing unit counts and updating status
+ * - Negative adjustments with underflow prevention (cannot remove more than in stock - 409)
+ * - Validation of input parameters (delta, mandatory reason, valid blood group enum)
+ * - Concurrency protection preventing negative inventory under simultaneous requests
+ */
+
 import { jest } from "@jest/globals";
 import express from "express";
 import request from "supertest";

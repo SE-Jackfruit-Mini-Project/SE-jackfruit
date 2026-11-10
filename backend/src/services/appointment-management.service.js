@@ -1,22 +1,52 @@
+/**
+ * @file appointment-management.service.js
+ * @description Donor appointment lifecycle management service allowing donors to view,
+ * reschedule, and cancel their donation appointments while enforcing capacity rules,
+ * future date constraints, and transactional consistency in accordance with US-013.
+ */
 
 import { z } from "zod";
 import { prisma } from "../utils/prisma.js";
 
+/**
+ * Zod validation schema for appointment rescheduling payloads.
+ */
 const rescheduleSchema = z.object({
   slotId: z.string().trim().min(1, "Select an appointment slot."),
 });
 
+/**
+ * Helper utility creating an Error object augmented with an HTTP status code.
+ *
+ * @param {string} message - Error description.
+ * @param {number} status - Associated HTTP status code.
+ * @returns {Error} Configured Error object.
+ */
 function makeError(message, status) {
   const error = new Error(message);
   error.status = status;
   return error;
 }
 
+/**
+ * Validates whether an appointment slot's combined date and start time occurs in the future.
+ *
+ * @param {{date: string, startTime: string} | null} slot - Slot data object containing date (YYYY-MM-DD) and startTime (HH:mm).
+ * @returns {boolean} True if the slot begins strictly after the current UTC timestamp; false otherwise.
+ */
 function isFutureSlot(slot) {
   if (!slot) return false;
   return new Date(`${slot.date}T${slot.startTime}:00.000Z`) > new Date();
 }
 
+/**
+ * Retrieves all appointments associated with a specific donor, including slot details.
+ *
+ * @async
+ * @function getDonorAppointments
+ * @param {string} donorId - Unique identifier of the authenticated donor.
+ * @returns {Promise<Array<Object>>} List of appointment records ordered by creation date descending.
+ */
 export async function getDonorAppointments(donorId) {
   return prisma.appointment.findMany({
     where: { donorId },
@@ -25,6 +55,28 @@ export async function getDonorAppointments(donorId) {
   });
 }
 
+/**
+ * Reschedules an active donation appointment to a new slot within an atomic transaction.
+ * 
+ * Business Logic & Constraints:
+ * 1. Verifies the existing appointment is in SCHEDULED status and associated with the caller.
+ * 2. Confirms the current appointment slot is still in the future (past appointments cannot be rescheduled).
+ * 3. Enforces that the target slot differs from the current slot.
+ * 4. Ensures target slot exists, is in the future, is flagged available, and has remaining capacity.
+ * 5. Atomically increments the booked count on the new slot (with concurrency lock checking capacity < maxCapacity).
+ * 6. Decrements booked count on original slot and marks it available.
+ * 7. Updates appointment record with the new slot reference.
+ *
+ * @async
+ * @function rescheduleDonorAppointment
+ * @param {string} donorId - Unique identifier of the donor.
+ * @param {string} appointmentId - Unique identifier of the appointment to reschedule.
+ * @param {{slotId: string}} input - Reschedule payload containing the new slot ID.
+ * @returns {Promise<Object>} Updated appointment record with newly assigned slot relation.
+ * @throws {Error} 404 if appointment or new slot is not found.
+ * @throws {Error} 400 if appointment is not scheduled, in the past, or target slot is identical.
+ * @throws {Error} 409 if new slot is full, unavailable, or concurrent update failed.
+ */
 export async function rescheduleDonorAppointment(
   donorId,
   appointmentId,
@@ -124,6 +176,24 @@ export async function rescheduleDonorAppointment(
   });
 }
 
+/**
+ * Cancels a donor's scheduled appointment and safely releases slot capacity.
+ * 
+ * Business Logic & Constraints:
+ * 1. Validates appointment belongs to donor and is in SCHEDULED status.
+ * 2. Confirms appointment is in the future.
+ * 3. Atomically updates appointment status to CANCELLED.
+ * 4. Decrements bookedCount on associated slot and re-flags slot as available.
+ *
+ * @async
+ * @function cancelDonorAppointment
+ * @param {string} donorId - Unique identifier of the donor.
+ * @param {string} appointmentId - Unique identifier of the appointment being cancelled.
+ * @returns {Promise<Object>} Updated appointment record with CANCELLED status.
+ * @throws {Error} 404 if appointment not found.
+ * @throws {Error} 400 if appointment is not scheduled or occurs in the past.
+ * @throws {Error} 409 if status was concurrently altered or slot decrement fails.
+ */
 export async function cancelDonorAppointment(donorId, appointmentId) {
   return prisma.$transaction(async (tx) => {
     const appointment = await tx.appointment.findFirst({

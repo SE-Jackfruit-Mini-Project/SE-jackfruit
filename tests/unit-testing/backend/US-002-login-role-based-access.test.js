@@ -1,8 +1,16 @@
+/**
+ * @file US-002-login-role-based-access.test.js
+ * @description Unit test suite for US-002: Login and Role-Based Access Control.
+ * Tests password hash verification via bcrypt, case-insensitive email comparison,
+ * rejection of incorrect credentials, and input validation on login credentials.
+ */
+
 import { jest } from "@jest/globals";
 
 const findUnique = jest.fn();
 const passwordHash = "$2a$10$9w55YveqyNjd5PBubW1/E.dnm6j0rdzN3jEH.g0aZ/rzypZVuouQG"; // "password123"
 
+// Mock Prisma client singleton
 jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: { user: { findUnique } },
 }));

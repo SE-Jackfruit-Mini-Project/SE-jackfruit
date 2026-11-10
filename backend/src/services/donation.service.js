@@ -1,8 +1,17 @@
+/**
+ * @file donation.service.js
+ * @description Service module managing the recording of completed blood donations by healthcare staff,
+ * verifying donor registration, validating calendar dates and units, and synchronizing accepted donations
+ * directly into blood inventory and movement logs in accordance with US-011 (FR-022).
+ */
+
 import { z } from "zod";
 import { prisma } from "../utils/prisma.js";
 import { deriveStatus } from "./inventory.service.js";
 
-
+/**
+ * Standard list of acceptable blood group enumerations.
+ */
 const bloodGroups = [
   "A_POSITIVE",
   "A_NEGATIVE",
@@ -14,6 +23,16 @@ const bloodGroups = [
   "O_NEGATIVE",
 ];
 
+/**
+ * Zod validation schema for recording a donation event.
+ * Enforces:
+ * - donorId must be non-empty string.
+ * - bloodGroup must be a valid enum member.
+ * - units must be integer between 1 and 50.
+ * - donationDate must be valid YYYY-MM-DD not in the future.
+ * - accepted must be explicitly provided boolean.
+ * - notes optional, max 255 characters.
+ */
 const donationSchema = z.object({
   donorId: z.string().trim().min(1, "Select a registered donor."),
 
@@ -58,6 +77,13 @@ const donationSchema = z.object({
     .optional(),
 }).strict();
 
+/**
+ * Retrieves all registered users with the DONOR role for staff selection during donation intake.
+ *
+ * @async
+ * @function getRegisteredDonors
+ * @returns {Promise<Array<{id: string, fullName: string, email: string}>>} List of registered donors sorted alphabetically.
+ */
 export async function getRegisteredDonors() {
   return prisma.user.findMany({
     where: { role: "DONOR" },
@@ -70,6 +96,13 @@ export async function getRegisteredDonors() {
   });
 }
 
+/**
+ * Retrieves the 50 most recent donation records with donor and staff recorder details.
+ *
+ * @async
+ * @function getRecentDonations
+ * @returns {Promise<Array<Object>>} List of recent donations.
+ */
 export async function getRecentDonations() {
   return prisma.donation.findMany({
     take: 50,
@@ -95,6 +128,26 @@ export async function getRecentDonations() {
   });
 }
 
+/**
+ * Records a completed blood donation by medical staff.
+ * Requirements: US-011 / FR-022.
+ * 
+ * Transactional Behavior:
+ * 1. Confirms donor user exists and has role DONOR.
+ * 2. Inserts donation row linking donor and recording staff member.
+ * 3. If accepted is true:
+ *    - Upserts inventory row for target blood group, incrementing availableUnits.
+ *    - Recomputes and updates inventory status (AVAILABLE, LOW, OUT_OF_STOCK).
+ *    - Records an audit InventoryMovement row of type DONATION with reference to the donation ID.
+ *
+ * @async
+ * @function recordCompletedDonation
+ * @param {string} staffId - ID of the staff member recording the donation.
+ * @param {Object} input - Donation input payload matching donationSchema.
+ * @returns {Promise<{donation: Object, inventoryUpdated: boolean}>} Recorded donation and inventory update confirmation.
+ * @throws {Error} 404 if donor is not found or not a DONOR.
+ * @throws {z.ZodError} If input schema constraints fail.
+ */
 export async function recordCompletedDonation(staffId, input) {
   const values = donationSchema.parse(input);
 
@@ -147,7 +200,7 @@ export async function recordCompletedDonation(staffId, input) {
     });
 
     if (values.accepted) {
-            const inventoryRow = await tx.inventory.upsert({
+      const inventoryRow = await tx.inventory.upsert({
         where: {
           bloodGroup: values.bloodGroup,
         },
