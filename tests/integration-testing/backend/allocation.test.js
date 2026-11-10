@@ -54,7 +54,7 @@ const tx = {
   },
 };
 
-jest.unstable_mockModule("../src/utils/prisma.js", () => ({
+jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: {
     bloodRequest: {
       findMany: async ({ where }) =>
@@ -79,7 +79,7 @@ jest.unstable_mockModule("../src/utils/prisma.js", () => ({
   },
 }));
 
-const { allocationRouter } = await import("../src/routes/allocation.routes.js");
+const { allocationRouter } = await import("../../../backend/src/routes/allocation.routes.js");
 
 function appWithUser(user) {
   const app = express();

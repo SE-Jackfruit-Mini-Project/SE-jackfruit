@@ -6,7 +6,7 @@
 
 // Project booking checks supplied for appointment booking. These are not clinical guidance.
 export const configuredEligibilityInformation =
-  "According to the official Indian guidelines, a donor must be 18 to 65 years old (inclusive), with a weight of at least 45 kg. A donor cannot donate again within 4 months of donating if they are female and similarly 3 months if male. Do not donate if you have very low haemoglobin or other medical conditions. To know more contact your blood-bank staff at +91 1234567890 for clinical eligibility and more guidance.";
+  "Project booking checks: donors must be 18 to 65 years old (inclusive) and weigh at least 45 kg. After staff or admin records an accepted donation, female donors must wait 4 calendar months and male donors 3 calendar months before booking again. These booking checks do not determine whether donating blood is medically safe; contact blood-bank staff for medical guidance.";
 
 /**
  * Evaluates the current state of approved donor eligibility guidance.
