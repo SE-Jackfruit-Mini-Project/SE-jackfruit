@@ -1,5 +1,5 @@
 /**
- * @file inventory-adjust.test.js
+ * @file US-014-manage-inventory-status.test.js
  * @description Integration unit test suite for inventory adjustment endpoint (PATCH /api/v1/inventory/:bloodGroup).
  * Verifies:
  * - Authentication (401) and role restriction (403 for non-staff/non-admin)
@@ -50,7 +50,7 @@ const tx = {
   },
 };
 
-jest.unstable_mockModule("../src/utils/prisma.js", () => ({
+jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: {
     $transaction: async (callback) => {
       const snapshot = new Map([...rows].map(([key, row]) => [key, { ...row }]));
@@ -66,7 +66,7 @@ jest.unstable_mockModule("../src/utils/prisma.js", () => ({
   },
 }));
 
-const { inventoryRouter } = await import("../src/routes/inventory.routes.js");
+const { inventoryRouter } = await import("../../../backend/src/routes/inventory.routes.js");
 
 function appWithUser(user) {
   const app = express();
