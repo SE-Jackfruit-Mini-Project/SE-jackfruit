@@ -18,6 +18,8 @@ import { prisma } from "../utils/prisma.js";
 const registrationSchema = z.object({
   fullName: z.string().trim().min(1, "Enter your name.").max(120, "Name is too long."),
   email: z.string().trim().email("Enter a valid email address.").max(254, "Email is too long."),
+  dateOfBirth: z.string().date("Enter a valid date of birth."),
+  gender: z.enum(["FEMALE", "MALE"], { message: "Choose female or male." }),
   password: z
     .string()
     .min(8, "Use at least 8 characters for your password.")
@@ -45,6 +47,14 @@ const registrationSchema = z.object({
  */
 export async function registerDonor(input) {
   const values = registrationSchema.parse(input);
+  const dateOfBirth = new Date(`${values.dateOfBirth}T00:00:00.000Z`);
+  if (values.dateOfBirth >= new Date().toISOString().slice(0, 10)) {
+    throw new z.ZodError([{
+      code: "custom",
+      path: ["dateOfBirth"],
+      message: "Date of birth must be in the past.",
+    }]);
+  }
   const email = values.email.toLowerCase();
   const passwordHash = await bcrypt.hash(values.password, 12);
 
@@ -53,6 +63,8 @@ export async function registerDonor(input) {
       fullName: values.fullName,
       email,
       passwordHash,
+      dateOfBirth,
+      gender: values.gender,
       // Public registration always creates a donor; clients cannot choose privileged roles.
       role: "DONOR",
     },
@@ -61,6 +73,8 @@ export async function registerDonor(input) {
       fullName: true,
       email: true,
       role: true,
+      dateOfBirth: true,
+      gender: true,
       createdAt: true,
     },
   });

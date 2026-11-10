@@ -16,6 +16,8 @@ import { Link, useNavigate } from "react-router-dom";
 export function ProfilePage() {
   const [profile, setProfile] = useState(null);
   const [fullName, setFullName] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [gender, setGender] = useState("");
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -38,6 +40,8 @@ export function ProfilePage() {
         if (!active || !user) return;
         setProfile(user);
         setFullName(user.fullName);
+        setDateOfBirth(user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().slice(0, 10) : "");
+        setGender(user.gender || "");
       })
       .catch((error) => {
         if (active) setMessage({ type: "error", text: error.message });
@@ -64,7 +68,11 @@ export function ProfilePage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ fullName }),
+        body: JSON.stringify({
+          fullName,
+          ...(!profile.dateOfBirth ? { dateOfBirth } : {}),
+          ...(!profile.gender ? { gender } : {}),
+        }),
       });
       const result = await response.json();
       if (!response.ok) {
@@ -110,8 +118,39 @@ export function ProfilePage() {
             <input autoComplete="email" id="profileEmail" readOnly value={profile.email} />
             <p className="field-hint">Email address is used to sign in and cannot be changed here.</p>
 
+            <label htmlFor="profileDateOfBirth">Date of birth</label>
+            <input
+              id="profileDateOfBirth"
+              max={new Date(Date.now() - 86400000).toISOString().slice(0, 10)}
+              onChange={(event) => setDateOfBirth(event.target.value)}
+              required={!profile.dateOfBirth}
+              readOnly={Boolean(profile.dateOfBirth)}
+              type="date"
+              value={dateOfBirth}
+            />
+            <label htmlFor="profileGender">Gender</label>
+            <select
+              id="profileGender"
+              onChange={(event) => setGender(event.target.value)}
+              required={!profile.gender}
+              disabled={Boolean(profile.gender)}
+              value={gender}
+            >
+              <option value="">Select</option>
+              <option value="FEMALE">Female</option>
+              <option value="MALE">Male</option>
+            </select>
+            <p className="field-hint">
+              {!profile.dateOfBirth || !profile.gender
+                ? "Add these details once before booking. They cannot be changed after saving."
+                : "Date of birth and gender are recorded once and cannot be changed here."}
+            </p>
+
             {message && <p className={`form-message ${message.type}`} role="status">{message.text}</p>}
-            <button disabled={saving || fullName.trim().length === 0} type="submit">
+            <button
+              disabled={saving || fullName.trim().length === 0 || ((!profile.dateOfBirth || !profile.gender) && (!dateOfBirth || !gender))}
+              type="submit"
+            >
               {saving ? "Saving changes…" : "Save changes"}
             </button>
           </form>

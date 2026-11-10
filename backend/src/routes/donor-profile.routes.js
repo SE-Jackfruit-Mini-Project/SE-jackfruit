@@ -36,15 +36,17 @@ donorProfileRouter.get("/me", async (request, response, next) => {
 });
 
 /**
- * Validation schema for updating donor full name.
+ * Validation schema for updating donor profile details.
  */
 const updateProfileSchema = z.object({
-  fullName: z.string().trim().min(1, "Enter your name.").max(120, "Name is too long."),
-}).strict();
+  fullName: z.string().trim().min(1, "Enter your name.").max(120, "Name is too long.").optional(),
+  dateOfBirth: z.string().date("Enter a valid date of birth.").optional(),
+  gender: z.enum(["FEMALE", "MALE"], { message: "Choose female or male." }).optional(),
+}).strict().refine((values) => Object.keys(values).length > 0, "Provide at least one profile field.");
 
 /**
  * PUT /api/profile/me
- * Updates the authenticated donor's full name.
+ * Updates the authenticated donor's profile. Date of birth and gender can be set once.
  * Requirements: US-003.
  *
  * @name UpdateMyProfile
@@ -57,18 +59,26 @@ const updateProfileSchema = z.object({
  */
 donorProfileRouter.put("/me", async (request, response, next) => {
   try {
-    const { fullName } = updateProfileSchema.parse(request.body);
-    const profile = await updateDonorProfile(request.session.user.id, fullName);
+    const values = updateProfileSchema.parse(request.body);
+    if (values.dateOfBirth) {
+      if (values.dateOfBirth >= new Date().toISOString().slice(0, 10)) {
+        return response.status(400).json({ message: "Date of birth must be in the past." });
+      }
+    }
+    const profile = await updateDonorProfile(request.session.user.id, values);
     if (!profile) {
       return response.status(404).json({ message: "Donor profile was not found." });
     }
 
     request.session.user.fullName = profile.fullName;
+    request.session.user.dateOfBirth = profile.dateOfBirth;
+    request.session.user.gender = profile.gender;
     return response.status(200).json({
       message: "Your profile has been updated.",
       user: profile,
     });
   } catch (error) {
+    if (error.status) return response.status(error.status).json({ message: error.message });
     if (error.name === "ZodError") {
       return response.status(400).json({
         message: error.issues[0]?.message || "Please check your profile details.",
