@@ -214,7 +214,15 @@ export function Dashboard() {
 
           {user?.role === "DONOR" && (
             <>
-              <BookAppointment />
+              {user.dateOfBirth && user.gender ? (
+                <BookAppointment />
+              ) : (
+                <section style={{ marginTop: "28px", padding: "24px", background: "#fff", border: "1px solid #e7dcd3", borderRadius: "16px" }}>
+                  <h3 style={{ marginTop: 0 }}>Complete your donor profile to book</h3>
+                  <p style={{ color: "#81716a" }}>Add your date of birth and gender once in your profile. They are used to check appointment eligibility.</p>
+                  <Link className="dashboard-profile-link" to="/profile">Complete donor profile</Link>
+                </section>
+              )}
               <ManageAppointments />
               <DonationHistory />
             </>

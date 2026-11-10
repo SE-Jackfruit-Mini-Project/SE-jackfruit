@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
-const initialValues = { fullName: "", email: "", password: "", confirmPassword: "" };
+const initialValues = { fullName: "", email: "", dateOfBirth: "", gender: "", password: "", confirmPassword: "" };
 
 /**
  * App component rendering the donor registration page.
@@ -56,6 +56,8 @@ export function App() {
         body: JSON.stringify({
           fullName: values.fullName,
           email: values.email,
+          dateOfBirth: values.dateOfBirth,
+          gender: values.gender,
           password: values.password,
         }),
       });
@@ -124,6 +126,26 @@ export function App() {
             type="email"
             value={values.email}
           />
+
+          <label htmlFor="dateOfBirth">Date of birth</label>
+          <input
+            autoComplete="bday"
+            id="dateOfBirth"
+            max={new Date(Date.now() - 86400000).toISOString().slice(0, 10)}
+            name="dateOfBirth"
+            onChange={updateField}
+            required
+            type="date"
+            value={values.dateOfBirth}
+          />
+
+          <label htmlFor="gender">Gender</label>
+          <select id="gender" name="gender" onChange={updateField} required value={values.gender}>
+            <option value="">Select</option>
+            <option value="FEMALE">Female</option>
+            <option value="MALE">Male</option>
+          </select>
+          <p className="field-hint">Date of birth and gender are saved to your donor profile for appointment eligibility.</p>
 
           <label htmlFor="password">Password</label>
           <input

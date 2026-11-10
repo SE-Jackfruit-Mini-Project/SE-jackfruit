@@ -32,6 +32,8 @@ describe("US-001 donor registration", () => {
     const result = await registerDonor({
       fullName: "Test Donor",
       email: "DONOR@EXAMPLE.COM",
+      dateOfBirth: "1995-06-15",
+      gender: "FEMALE",
       password: "donor-password",
     });
 
@@ -53,7 +55,13 @@ describe("US-001 donor registration", () => {
 
   test("preserves duplicate-email failures", async () => {
     create.mockRejectedValue(Object.assign(new Error("duplicate"), { code: "P2002" }));
-    await expect(registerDonor({ fullName: "Test Donor", email: "one@example.com", password: "password123" }))
+    await expect(registerDonor({
+      fullName: "Test Donor",
+      email: "one@example.com",
+      dateOfBirth: "1995-06-15",
+      gender: "MALE",
+      password: "password123",
+    }))
       .rejects.toMatchObject({ code: "P2002" });
   });
 });
