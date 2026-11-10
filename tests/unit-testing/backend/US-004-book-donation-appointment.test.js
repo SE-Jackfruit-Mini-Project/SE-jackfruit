@@ -1,3 +1,9 @@
+/**
+ * @file US-004-book-donation-appointment.test.js
+ * @description Unit test suite for US-004: Book Donation Appointment.
+ * Tests rejection of non-existent slots (404), rejection of over-capacity/full slots (400),
+ * and duplicate booking prevention for the same donor and slot.
+ */
 
 import { jest } from "@jest/globals";
 
@@ -5,6 +11,7 @@ const findUnique = jest.fn();
 const findFirst = jest.fn();
 const transaction = jest.fn();
 
+// Mock Prisma client singleton
 jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: {
     appointmentSlot: { findUnique },

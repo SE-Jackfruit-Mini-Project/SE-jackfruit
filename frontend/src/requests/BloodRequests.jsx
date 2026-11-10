@@ -1,3 +1,10 @@
+/**
+ * @file BloodRequests.jsx
+ * @description Hospital blood request submission and request status tracking component.
+ * Allows hospital personnel to create blood orders with urgency levels and inspect live approval
+ * and allocation statuses in compliance with US-007 (FR-017, FR-018).
+ */
+
 import { useState, useEffect } from "react";
 
 const BLOOD_GROUPS = [
@@ -11,6 +18,12 @@ const BLOOD_GROUPS = [
   { value: "O_NEGATIVE", label: "O-" },
 ];
 
+/**
+ * BloodRequests component for hospital requesters.
+ *
+ * @component
+ * @returns {JSX.Element} Rendered submission form and request history table.
+ */
 export function BloodRequests() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,6 +40,12 @@ export function BloodRequests() {
     fetchRequests();
   }, []);
 
+  /**
+   * Fetches the hospital requester's submitted blood requests.
+   *
+   * @async
+   * @function fetchRequests
+   */
   async function fetchRequests() {
     try {
       const response = await fetch("/api/v1/requests/my", { credentials: "include" });
@@ -41,12 +60,25 @@ export function BloodRequests() {
     }
   }
 
+  /**
+   * Handles input changes in the request form.
+   *
+   * @function handleInputChange
+   * @param {React.ChangeEvent<HTMLInputElement | HTMLSelectElement>} event - Form event.
+   */
   function handleInputChange(event) {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setMessage(null);
   }
 
+  /**
+   * Submits a new blood request to the backend.
+   *
+   * @async
+   * @function handleSubmit
+   * @param {React.FormEvent} event - Form event.
+   */
   async function handleSubmit(event) {
     event.preventDefault();
     setSubmitting(true);

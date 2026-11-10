@@ -1,3 +1,11 @@
+/**
+ * @file US-013-manage-donor-appointments.test.js
+ * @description Unit test suite for US-013: Manage Donor Appointments.
+ * Tests donor appointment listing, slot rescheduling with atomic capacity increment/decrement,
+ * rejection of unavailable/overbooked target slots, appointment cancellation with slot release,
+ * cross-donor access control protection, and same-slot rescheduling rejection.
+ */
+
 import { jest } from "@jest/globals";
 
 const appointmentFindMany = jest.fn();
@@ -11,6 +19,7 @@ const slotUpdateMany = jest.fn();
 
 const transaction = jest.fn();
 
+// Mock Prisma client singleton
 jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: {
     appointment: {
@@ -28,6 +37,7 @@ const {
   "../../../backend/src/services/appointment-management.service.js"
 );
 
+/** Helper creating a mock appointment object */
 function makeAppointment() {
   return {
     id: "appointment-1",
@@ -47,6 +57,7 @@ function makeAppointment() {
   };
 }
 
+/** Helper creating a mock slot object */
 function makeNewSlot() {
   return {
     id: "new-slot",

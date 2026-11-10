@@ -1,5 +1,18 @@
+/**
+ * @file ReviewRequests.jsx
+ * @description Staff blood request review workflow interface. Displays submitted hospital requests,
+ * supports filtering by status (PENDING, APPROVED, REJECTED, ALL), and facilitates one-click approval
+ * or rejection in compliance with US-016 (FR-035, FR-036, FR-037).
+ */
+
 import { useState, useEffect } from "react";
 
+/**
+ * ReviewRequests component for staff and admin processing of hospital orders.
+ *
+ * @component
+ * @returns {JSX.Element} Rendered blood request review interface.
+ */
 export function ReviewRequests() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,6 +24,12 @@ export function ReviewRequests() {
     fetchRequests();
   }, [filter]);
 
+  /**
+   * Fetches requests according to currently selected status filter.
+   *
+   * @async
+   * @function fetchRequests
+   */
   async function fetchRequests() {
     try {
       const url = filter === "ALL" ? "/api/v1/requests" : `/api/v1/requests?status=${filter}`;
@@ -26,6 +45,14 @@ export function ReviewRequests() {
     }
   }
 
+  /**
+   * Submits review decision (APPROVED or REJECTED) for a request.
+   *
+   * @async
+   * @function handleReview
+   * @param {string} requestId - Request ID being processed.
+   * @param {'APPROVED' | 'REJECTED'} decision - Staff decision.
+   */
   async function handleReview(requestId, decision) {
     setProcessingId(requestId);
     setMessage(null);

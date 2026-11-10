@@ -1,8 +1,16 @@
+/**
+ * @file US-003-donor-profile.test.js
+ * @description Unit test suite for US-003: Donor Profile Management.
+ * Verifies that profile queries only retrieve records with role 'DONOR', restricts full name
+ * updates to verified donor accounts, and ignores unauthorized profile modifications.
+ */
+
 import { jest } from "@jest/globals";
 
 const findFirst = jest.fn();
 const updateMany = jest.fn();
 
+// Mock Prisma client singleton
 jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: { user: { findFirst, updateMany } },
 }));

@@ -1,20 +1,48 @@
+/**
+ * @file BloodAvailability.jsx
+ * @description Blood availability dashboard widget. Fetches and displays real-time unit levels
+ * and availability statuses (AVAILABLE, LOW, OUT_OF_STOCK) across all 8 blood groups in accordance
+ * with US-006 (FR-025, FR-026).
+ */
+
 import { useEffect, useState } from "react";
 
+/** Visual badge styling mappings for inventory status */
 const STATUS_STYLES = {
   AVAILABLE: { label: "Available", background: "#d1fae5", color: "#065f46" },
   LOW: { label: "Low stock", background: "#fef3c7", color: "#92400e" },
   OUT_OF_STOCK: { label: "Out of stock", background: "#fee2e2", color: "#991b1b" },
 };
 
+/**
+ * Formats blood group enum string to display string.
+ *
+ * @param {string} bloodGroup - Blood group enum.
+ * @returns {string} Formatted notation.
+ */
 function formatGroup(bloodGroup) {
   return bloodGroup.replace("_POSITIVE", "+").replace("_NEGATIVE", "-");
 }
 
+/**
+ * BloodAvailability component displaying real-time inventory levels.
+ *
+ * @component
+ * @param {Object} props - Component properties.
+ * @param {number} [props.refreshKey=0] - Dependency counter triggering re-fetches when inventory mutates.
+ * @returns {JSX.Element} Rendered blood availability widget.
+ */
 export function BloodAvailability({ refreshKey = 0 }) {
   const [availability, setAvailability] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  /**
+   * Fetches real-time blood availability from backend API.
+   *
+   * @async
+   * @function fetchAvailability
+   */
   async function fetchAvailability() {
     setLoading(true);
     setError(null);
@@ -34,6 +62,7 @@ export function BloodAvailability({ refreshKey = 0 }) {
     }
   }
 
+  // Refetch availability when refreshKey increments or on initial mount
   useEffect(() => {
     fetchAvailability();
   }, [refreshKey]);

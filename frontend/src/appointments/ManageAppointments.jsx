@@ -1,3 +1,9 @@
+/**
+ * @file ManageAppointments.jsx
+ * @description Donor appointment self-service management interface. Enables donors to review their
+ * scheduled appointments, reschedule future appointments to alternative slots, and cancel appointments
+ * with automatic capacity restoration in compliance with US-013.
+ */
 
 import { useEffect, useState } from "react";
 
@@ -16,7 +22,14 @@ const inputStyle = {
   minWidth: "200px",
 };
 
+/**
+ * ManageAppointments component allowing donors to manage and modify active appointments.
+ *
+ * @component
+ * @returns {JSX.Element} Rendered appointment management panel.
+ */
 export function ManageAppointments() {
+  // State for appointment records, available slots, operation pending flags, and error messaging
   const [appointments, setAppointments] = useState([]);
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,10 +38,17 @@ export function ManageAppointments() {
   const [selectedSlotId, setSelectedSlotId] = useState("");
   const [message, setMessage] = useState(null);
 
+  // Load appointments and slots when component is mounted
   useEffect(() => {
     loadData();
   }, []);
 
+  /**
+   * Loads both donor appointments and all available slots from backend services.
+   *
+   * @async
+   * @function loadData
+   */
   async function loadData() {
     setLoading(true);
 
@@ -69,6 +89,13 @@ export function ManageAppointments() {
     }
   }
 
+  /**
+   * Prompts confirmation and executes cancellation of an appointment.
+   *
+   * @async
+   * @function handleCancel
+   * @param {Object} appointment - The appointment record to cancel.
+   */
   async function handleCancel(appointment) {
     const confirmed = window.confirm(
       "Are you sure you want to cancel this appointment?"
@@ -109,6 +136,13 @@ export function ManageAppointments() {
     }
   }
 
+  /**
+   * Submits a request to reschedule an existing appointment to a new slot.
+   *
+   * @async
+   * @function handleReschedule
+   * @param {Object} appointment - The appointment being rescheduled.
+   */
   async function handleReschedule(appointment) {
     if (!selectedSlotId) {
       setMessage({

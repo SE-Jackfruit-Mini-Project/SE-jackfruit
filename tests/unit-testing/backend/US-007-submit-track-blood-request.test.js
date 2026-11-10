@@ -1,8 +1,16 @@
+/**
+ * @file US-007-submit-track-blood-request.test.js
+ * @description Unit test suite for US-007: Submit and Track Blood Request.
+ * Tests initial state assignment of PENDING upon request creation, input validation constraints,
+ * and scoped query filtering ensuring requesters can only inspect their own submissions.
+ */
+
 import { jest } from "@jest/globals";
 
 const create = jest.fn();
 const findMany = jest.fn();
 
+// Mock Prisma client singleton
 jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: {
     bloodRequest: { create, findMany },

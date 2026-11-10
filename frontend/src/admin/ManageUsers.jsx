@@ -1,5 +1,13 @@
+/**
+ * @file ManageUsers.jsx
+ * @description Administrative user management console component. Allows administrators to view
+ * all registered accounts, filter and search by name or role, modify user roles within permitted sets,
+ * and activate or deactivate accounts with safety guards preventing admin self-lockout (US-017 / FR-038 - FR-042).
+ */
+
 import { useState, useEffect } from "react";
 
+/** Permitted user roles within the system */
 const PERMITTED_ROLES = [
   { value: "DONOR", label: "Donor" },
   { value: "HOSPITAL_REQUESTER", label: "Hospital Requester" },
@@ -7,7 +15,16 @@ const PERMITTED_ROLES = [
   { value: "ADMIN", label: "Admin" },
 ];
 
+/**
+ * ManageUsers component rendering administrator user directory and access controls.
+ *
+ * @component
+ * @param {Object} props - Component properties.
+ * @param {string} props.currentAdminId - ID of the currently logged-in administrator (used for self-action guards).
+ * @returns {JSX.Element} Rendered user management dashboard section.
+ */
 export function ManageUsers({ currentAdminId }) {
+  // Local state for user records, loading indicators, filters, and status messages
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -15,10 +32,17 @@ export function ManageUsers({ currentAdminId }) {
   const [updatingId, setUpdatingId] = useState(null);
   const [message, setMessage] = useState(null);
 
+  // Initial fetch of system users on component mount
   useEffect(() => {
     fetchUsers();
   }, []);
 
+  /**
+   * Fetches the complete list of registered system users from the backend administrative API.
+   *
+   * @async
+   * @function fetchUsers
+   */
   async function fetchUsers() {
     try {
       const response = await fetch("/api/v1/admin/users", { credentials: "include" });
@@ -33,6 +57,14 @@ export function ManageUsers({ currentAdminId }) {
     }
   }
 
+  /**
+   * Handles user role modification requests.
+   *
+   * @async
+   * @function handleRoleChange
+   * @param {string} userId - Target user ID to update.
+   * @param {string} newRole - Newly selected role enum string.
+   */
   async function handleRoleChange(userId, newRole) {
     setUpdatingId(userId);
     setMessage(null);
@@ -61,6 +93,14 @@ export function ManageUsers({ currentAdminId }) {
     }
   }
 
+  /**
+   * Handles toggling user account activation state.
+   *
+   * @async
+   * @function handleStatusToggle
+   * @param {string} userId - Target user ID.
+   * @param {boolean} currentStatus - Current active state of the user.
+   */
   async function handleStatusToggle(userId, currentStatus) {
     setUpdatingId(userId);
     setMessage(null);
@@ -89,6 +129,7 @@ export function ManageUsers({ currentAdminId }) {
     }
   }
 
+  // Filter users based on selected role tab and search query string
   const filteredUsers = users.filter((u) => {
     const matchesRole = roleFilter === "ALL" || u.role === roleFilter;
     const term = search.toLowerCase().trim();

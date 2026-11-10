@@ -1,9 +1,16 @@
+/**
+ * @file US-009-manage-appointment-slots.test.js
+ * @description Unit test suite for US-009: Manage Appointment Slots.
+ * Tests past-date slot rejection, invalid time range validation (endTime <= startTime),
+ * and filtering of future available appointment slots.
+ */
 
 import { jest } from "@jest/globals";
 
 const findMany = jest.fn();
 const create = jest.fn();
 
+// Mock Prisma client singleton
 jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: {
     appointmentSlot: {

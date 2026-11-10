@@ -1,9 +1,18 @@
+/**
+ * @file US-016-review-process-blood-requests.test.js
+ * @description Unit test suite for US-016: Review and Process Blood Requests.
+ * Tests staff queue retrieval, status-filtered inquiries, approval/rejection transitions,
+ * race-condition prevention on non-PENDING requests, non-existent request rejection,
+ * and invalid status input rejection.
+ */
+
 import { jest } from "@jest/globals";
 
 const findMany = jest.fn();
 const findUnique = jest.fn();
 const updateMany = jest.fn();
 
+// Mock Prisma client singleton
 jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: {
     bloodRequest: { findMany, findUnique, updateMany },

@@ -1,3 +1,10 @@
+/**
+ * @file admin.routes.js
+ * @description Express router for administrative user management endpoints, including
+ * listing registered users, updating user roles, and toggling account active status.
+ * All routes are guarded by `requireAuth` and `requireRole("ADMIN")`.
+ */
+
 import { Router } from "express";
 import { requireAuth, requireRole } from "../middleware/auth.middleware.js";
 import {
@@ -11,7 +18,18 @@ export const adminRouter = Router();
 // Protect all admin routes: must be authenticated and have ADMIN role
 adminRouter.use(requireAuth, requireRole("ADMIN"));
 
-// FR-038: Admin view users
+/**
+ * GET /api/admin/users
+ * FR-038: Admin view users.
+ * Retrieves a list of all registered system users ordered by creation date descending.
+ *
+ * @name GetUsers
+ * @route {GET} /api/admin/users
+ * @authentication Requires active session with role ADMIN
+ * @returns {200} JSON object containing list of sanitized user accounts
+ * @returns {401} Unauthorized if session is invalid
+ * @returns {403} Forbidden if user role is not ADMIN
+ */
 adminRouter.get("/users", async (_request, response, next) => {
   try {
     const users = await getAllUsers();
@@ -21,7 +39,20 @@ adminRouter.get("/users", async (_request, response, next) => {
   }
 });
 
-// FR-039: Admin manage roles
+/**
+ * PATCH /api/admin/users/:id/role
+ * FR-039: Admin manage roles.
+ * Updates the RBAC role of a target user. Prevents administrator self-demotion.
+ *
+ * @name UpdateUserRole
+ * @route {PATCH} /api/admin/users/:id/role
+ * @authentication Requires active session with role ADMIN
+ * @routeparam {string} id - Target user's unique identifier
+ * @bodyparam {string} role - New role (DONOR, HOSPITAL_REQUESTER, STAFF, ADMIN)
+ * @returns {200} Confirmation message and updated user record
+ * @returns {400} If role is invalid or admin attempts to modify their own role
+ * @returns {404} If target user does not exist
+ */
 adminRouter.patch("/users/:id/role", async (request, response, next) => {
   try {
     const updatedUser = await updateUserRole(
@@ -49,7 +80,20 @@ adminRouter.patch("/users/:id/role", async (request, response, next) => {
   }
 });
 
-// FR-040: Admin activate/deactivate accounts
+/**
+ * PATCH /api/admin/users/:id/status
+ * FR-040: Admin activate/deactivate accounts.
+ * Toggles a target user's active status. Prevents administrator self-deactivation.
+ *
+ * @name UpdateUserStatus
+ * @route {PATCH} /api/admin/users/:id/status
+ * @authentication Requires active session with role ADMIN
+ * @routeparam {string} id - Target user's unique identifier
+ * @bodyparam {boolean} isActive - Desired active flag state
+ * @returns {200} Confirmation message and updated user record
+ * @returns {400} If status is not boolean or admin attempts to deactivate self
+ * @returns {404} If target user does not exist
+ */
 adminRouter.patch("/users/:id/status", async (request, response, next) => {
   try {
     const updatedUser = await updateUserStatus(

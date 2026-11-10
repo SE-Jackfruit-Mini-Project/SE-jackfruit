@@ -1,3 +1,9 @@
+/**
+ * @file request.routes.js
+ * @description Express router for hospital blood requests. Exposes endpoints for hospital requesters
+ * to submit requests and monitor request tracking, and for staff/admin to review and approve/reject requests.
+ */
+
 import { Router } from "express";
 import { requireAuth, requireRole } from "../middleware/auth.middleware.js";
 import {
@@ -9,7 +15,20 @@ import {
 
 export const requestRouter = Router();
 
-// FR-030 & FR-031: Submit blood request (Hospital Requester only)
+/**
+ * POST /api/requests
+ * FR-030 & FR-031: Submit blood request (Hospital Requester only).
+ *
+ * @name CreateBloodRequest
+ * @route {POST} /api/requests
+ * @authentication Requires active session with role HOSPITAL_REQUESTER
+ * @bodyparam {string} hospitalName - Hospital name (2-150 chars)
+ * @bodyparam {string} bloodGroup - Blood group enum
+ * @bodyparam {number} units - Requested quantity (1-50 units)
+ * @bodyparam {string} [urgency] - Urgency level ('NORMAL' | 'URGENT' | 'EMERGENCY')
+ * @returns {201} Created request confirmation with PENDING status
+ * @returns {400} Validation errors
+ */
 requestRouter.post("/", requireAuth, requireRole("HOSPITAL_REQUESTER"), async (request, response, next) => {
   try {
     const bloodRequest = await createBloodRequest(request.session.user.id, request.body);
@@ -28,7 +47,15 @@ requestRouter.post("/", requireAuth, requireRole("HOSPITAL_REQUESTER"), async (r
   }
 });
 
-// FR-033 & FR-034: View own submitted blood requests and their status
+/**
+ * GET /api/requests/my
+ * FR-033 & FR-034: View own submitted blood requests and their real-time statuses.
+ *
+ * @name GetMyBloodRequests
+ * @route {GET} /api/requests/my
+ * @authentication Requires active session with role HOSPITAL_REQUESTER
+ * @returns {200} Array of blood requests submitted by this hospital
+ */
 requestRouter.get("/my", requireAuth, requireRole("HOSPITAL_REQUESTER"), async (request, response, next) => {
   try {
     const requests = await getRequesterRequests(request.session.user.id);
@@ -38,7 +65,16 @@ requestRouter.get("/my", requireAuth, requireRole("HOSPITAL_REQUESTER"), async (
   }
 });
 
-// FR-035: Staff view blood requests requiring processing
+/**
+ * GET /api/requests
+ * FR-035: Staff view blood requests requiring processing, with optional status filter.
+ *
+ * @name GetAllBloodRequests
+ * @route {GET} /api/requests
+ * @authentication Requires active session with role STAFF or ADMIN
+ * @queryparam {string} [status] - Filter by status ('PENDING' | 'APPROVED' | 'REJECTED' | 'ALLOCATED')
+ * @returns {200} Array of blood requests matching filter
+ */
 requestRouter.get("/", requireAuth, requireRole("STAFF", "ADMIN"), async (request, response, next) => {
   try {
     const { status } = request.query;
@@ -49,7 +85,19 @@ requestRouter.get("/", requireAuth, requireRole("STAFF", "ADMIN"), async (reques
   }
 });
 
-// FR-036 & FR-037: Staff approve or reject blood request
+/**
+ * PATCH /api/requests/:id/review
+ * FR-036 & FR-037: Staff approve or reject blood request.
+ *
+ * @name ReviewBloodRequest
+ * @route {PATCH} /api/requests/:id/review
+ * @authentication Requires active session with role STAFF or ADMIN
+ * @routeparam {string} id - Blood request ID to review
+ * @bodyparam {string} status - Review decision ('APPROVED' | 'REJECTED')
+ * @returns {200} Success message and updated blood request entity
+ * @returns {400} Invalid status decision or request is not currently in PENDING state
+ * @returns {404} If request is not found
+ */
 requestRouter.patch("/:id/review", requireAuth, requireRole("STAFF", "ADMIN"), async (request, response, next) => {
   try {
     const updatedRequest = await reviewBloodRequest(request.params.id, request.body?.status);

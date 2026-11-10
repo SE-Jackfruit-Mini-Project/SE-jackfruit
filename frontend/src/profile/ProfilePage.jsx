@@ -1,6 +1,18 @@
+/**
+ * @file ProfilePage.jsx
+ * @description Donor profile self-service view component. Displays personal account details
+ * and allows donors to modify their registered full legal name in compliance with US-003.
+ */
+
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+/**
+ * ProfilePage component for viewing and editing donor user profile.
+ *
+ * @component
+ * @returns {JSX.Element} Rendered profile management page.
+ */
 export function ProfilePage() {
   const [profile, setProfile] = useState(null);
   const [fullName, setFullName] = useState("");
@@ -9,6 +21,7 @@ export function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
 
+  // Load active donor profile on mount
   useEffect(() => {
     let active = true;
     fetch("/api/v1/donors/me", { credentials: "include" })
@@ -35,6 +48,13 @@ export function ProfilePage() {
     return () => { active = false; };
   }, [navigate]);
 
+  /**
+   * Submits full name update to the donor profile API.
+   *
+   * @async
+   * @function saveProfile
+   * @param {React.FormEvent} event - Form event.
+   */
   async function saveProfile(event) {
     event.preventDefault();
     setSaving(true);
