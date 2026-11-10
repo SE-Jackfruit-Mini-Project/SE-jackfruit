@@ -136,9 +136,6 @@ export function Dashboard() {
             onChanged={() => setInventoryVersion((version) => version + 1)}
           />
 
-          <AllocateRequests
-            onAllocated={() => setInventoryVersion((version) => version + 1)}
-          />
           <ManageSlots />
           <DonorInformation />
           <RecordDonation />
