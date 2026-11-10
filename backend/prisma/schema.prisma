@@ -54,6 +54,7 @@ model User {
   role               UserRole            @default(DONOR)
   dateOfBirth        DateTime?           @map("date_of_birth") @db.Date
   gender             String?             @db.VarChar(20)
+  bloodGroup         BloodGroup?         @map("blood_group")
   isActive           Boolean             @default(true) @map("is_active")
   createdAt          DateTime            @default(now()) @map("created_at")
   bloodRequests      BloodRequest[]

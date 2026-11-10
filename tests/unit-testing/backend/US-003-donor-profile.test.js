@@ -43,4 +43,26 @@ describe("US-003 donor profile", () => {
     updateMany.mockResolvedValue({ count: 0 });
     await expect(updateDonorProfile("staff-1", "Changed")).resolves.toBeNull();
   });
+
+  test("records blood group once for an existing donor profile", async () => {
+    findFirst
+      .mockResolvedValueOnce({ dateOfBirth: null, gender: null, bloodGroup: null })
+      .mockResolvedValueOnce({ id: "donor-1", fullName: "Test Donor", bloodGroup: "AB_NEGATIVE" });
+    updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(updateDonorProfile("donor-1", { bloodGroup: "AB_NEGATIVE" }))
+      .resolves.toMatchObject({ bloodGroup: "AB_NEGATIVE" });
+    expect(updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ bloodGroup: null }),
+      data: { bloodGroup: "AB_NEGATIVE" },
+    }));
+  });
+
+  test("does not allow a saved blood group to be changed", async () => {
+    findFirst.mockResolvedValue({ bloodGroup: "AB_NEGATIVE" });
+
+    await expect(updateDonorProfile("donor-1", { bloodGroup: "O_POSITIVE" }))
+      .rejects.toMatchObject({ status: 400, message: expect.stringContaining("only be recorded once") });
+    expect(updateMany).not.toHaveBeenCalled();
+  });
 });

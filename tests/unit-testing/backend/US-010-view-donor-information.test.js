@@ -31,12 +31,22 @@ describe("US-010 donor information", () => {
       where: { role: "DONOR" },
       orderBy: { fullName: "asc" },
     }));
+    expect(query.select).toEqual(expect.objectContaining({
+      fullName: true,
+      dateOfBirth: true,
+      gender: true,
+      bloodGroup: true,
+    }));
+    expect(query.select).not.toHaveProperty("email");
     expect(query.select).not.toHaveProperty("passwordHash");
   });
 
   test("retrieves only a donor record by id", async () => {
-    findFirst.mockResolvedValue({ id: "d1", fullName: "Demo Donor" });
+    findFirst.mockResolvedValue({ id: "d1", fullName: "Demo Donor", dateOfBirth: new Date("2000-01-01"), gender: "FEMALE", bloodGroup: "O_POSITIVE" });
     await expect(getDonorInformation("d1")).resolves.toMatchObject({ id: "d1" });
-    expect(findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "d1", role: "DONOR" } }));
+    expect(findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "d1", role: "DONOR" },
+      select: expect.objectContaining({ dateOfBirth: true, gender: true, bloodGroup: true }),
+    }));
   });
 });

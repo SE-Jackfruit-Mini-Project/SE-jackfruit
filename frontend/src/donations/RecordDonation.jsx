@@ -7,16 +7,9 @@
 
 import { useEffect, useState } from "react";
 
-const bloodGroups = [
-  ["A_POSITIVE", "A+"],
-  ["A_NEGATIVE", "A-"],
-  ["B_POSITIVE", "B+"],
-  ["B_NEGATIVE", "B-"],
-  ["AB_POSITIVE", "AB+"],
-  ["AB_NEGATIVE", "AB-"],
-  ["O_POSITIVE", "O+"],
-  ["O_NEGATIVE", "O-"],
-];
+function formatBloodGroup(value) {
+  return value?.replace("_POSITIVE", "+").replace("_NEGATIVE", "-") || "Not recorded";
+}
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -46,12 +39,12 @@ export function RecordDonation() {
 
   const [formData, setFormData] = useState({
     donorId: "",
-    bloodGroup: "",
     units: "1",
     donationDate: today,
     accepted: "",
     notes: "",
   });
+  const selectedDonor = donors.find((donor) => donor.id === formData.donorId);
 
   // Initial data loading on mount
   useEffect(() => {
@@ -103,7 +96,7 @@ export function RecordDonation() {
     } catch (error) {
       setMessage({
         type: "error",
-        text: error.message || "Could not load donation information.",
+            text: error.message || "Could not load donors with appointments.",
       });
     } finally {
       setLoading(false);
@@ -148,7 +141,6 @@ export function RecordDonation() {
         credentials: "include",
         body: JSON.stringify({
           donorId: formData.donorId,
-          bloodGroup: formData.bloodGroup,
           units: Number(formData.units),
           donationDate: formData.donationDate,
           accepted: formData.accepted === "true",
@@ -181,7 +173,6 @@ export function RecordDonation() {
 
       setFormData({
         donorId: formData.donorId,
-        bloodGroup: "",
         units: "1",
         donationDate: today,
         accepted: "",
@@ -259,7 +250,7 @@ export function RecordDonation() {
           </p>
         ) : donors.length === 0 ? (
           <p style={{ color: "#81716a", fontSize: "14px" }}>
-            No registered donors were found.
+            No donors with a saved blood group and an appointment are available.
           </p>
         ) : (
           <form
@@ -298,7 +289,7 @@ export function RecordDonation() {
                   <option value="">Select donor</option>
                   {donors.map((donor) => (
                     <option key={donor.id} value={donor.id}>
-                      {donor.fullName} ({donor.email})
+                      {donor.fullName}
                     </option>
                   ))}
                 </select>
@@ -315,24 +306,15 @@ export function RecordDonation() {
                     color: "#51413b",
                   }}
                 >
-                  Blood group
+                  Donor blood group
                 </label>
 
-                <select
+                <input
                   id="donation-blood-group"
-                  name="bloodGroup"
-                  value={formData.bloodGroup}
-                  onChange={handleInputChange}
-                  required
+                  value={formatBloodGroup(selectedDonor?.bloodGroup)}
+                  readOnly
                   style={inputStyle}
-                >
-                  <option value="">Select blood group</option>
-                  {bloodGroups.map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
               <div>
@@ -528,9 +510,7 @@ export function RecordDonation() {
                       {donation.donor.fullName}
                     </td>
                     <td style={{ padding: "12px" }}>
-                      {bloodGroups.find(
-                        ([value]) => value === donation.bloodGroup
-                      )?.[1] || donation.bloodGroup}
+                      {formatBloodGroup(donation.bloodGroup)}
                     </td>
                     <td style={{ padding: "12px" }}>{donation.units}</td>
                     <td style={{ padding: "12px" }}>

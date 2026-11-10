@@ -10,6 +10,7 @@ import { jest } from "@jest/globals";
 const findUnique = jest.fn();
 const findFirst = jest.fn();
 const findDonor = jest.fn();
+const findDonation = jest.fn();
 const createAppointment = jest.fn();
 const updateSlot = jest.fn();
 const transaction = jest.fn();
@@ -23,6 +24,7 @@ const tx = {
 jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: {
     user: { findUnique: findDonor },
+    donation: { findFirst: findDonation },
     appointmentSlot: { findUnique },
     appointment: { findFirst },
     $transaction: transaction,
@@ -38,6 +40,7 @@ beforeEach(() => {
   jest.setSystemTime(new Date("2026-11-10T12:00:00.000Z"));
   findUnique.mockReset();
   findFirst.mockReset();
+  findDonation.mockReset();
   findDonor.mockReset();
   createAppointment.mockReset();
   updateSlot.mockReset();
@@ -47,6 +50,7 @@ beforeEach(() => {
     gender: "FEMALE",
   });
   findFirst.mockResolvedValue(null);
+  findDonation.mockResolvedValue(null);
   transaction.mockReset();
 });
 
@@ -182,7 +186,7 @@ describe("US-004 book donation appointment", () => {
 
   test("enforces the female four-month wait", async () => {
     prepareSuccessfulBooking();
-    findFirst.mockResolvedValueOnce({ createdAt: new Date("2026-07-11T12:00:00.000Z") });
+    findDonation.mockResolvedValue({ donationDate: new Date("2026-07-11T00:00:00.000Z") });
 
     await expect(bookAppointment("donor-1", { slotId: "slot-1", weightKg: 60 }))
       .rejects.toMatchObject({ status: 400, message: expect.stringContaining("2026-11-11") });
@@ -191,7 +195,7 @@ describe("US-004 book donation appointment", () => {
 
   test("allows a female donor to book after four calendar months", async () => {
     prepareSuccessfulBooking();
-    findFirst.mockResolvedValueOnce({ createdAt: new Date("2026-07-10T12:00:00.000Z") });
+    findDonation.mockResolvedValue({ donationDate: new Date("2026-07-10T00:00:00.000Z") });
 
     await expect(bookAppointment("donor-1", { slotId: "slot-1", weightKg: 60 }))
       .resolves.toMatchObject({ id: "appointment-1" });
@@ -200,7 +204,7 @@ describe("US-004 book donation appointment", () => {
   test("enforces the male three-month wait", async () => {
     prepareSuccessfulBooking();
     findDonor.mockResolvedValue(donor({ gender: "MALE" }));
-    findFirst.mockResolvedValueOnce({ createdAt: new Date("2026-08-11T12:00:00.000Z") });
+    findDonation.mockResolvedValue({ donationDate: new Date("2026-08-11T00:00:00.000Z") });
 
     await expect(bookAppointment("donor-1", { slotId: "slot-1", weightKg: 60 }))
       .rejects.toMatchObject({ status: 400, message: expect.stringContaining("2026-11-11") });
@@ -210,9 +214,21 @@ describe("US-004 book donation appointment", () => {
   test("allows a male donor to book after three calendar months", async () => {
     prepareSuccessfulBooking();
     findDonor.mockResolvedValue(donor({ gender: "MALE" }));
-    findFirst.mockResolvedValueOnce({ createdAt: new Date("2026-08-10T12:00:00.000Z") });
+    findDonation.mockResolvedValue({ donationDate: new Date("2026-08-10T00:00:00.000Z") });
 
     await expect(bookAppointment("donor-1", { slotId: "slot-1", weightKg: 60 }))
       .resolves.toMatchObject({ id: "appointment-1" });
+  });
+
+  test("does not apply a waiting period when the donor only booked or cancelled an appointment", async () => {
+    prepareSuccessfulBooking();
+    findDonation.mockResolvedValue(null);
+
+    await expect(bookAppointment("donor-1", { slotId: "slot-1", weightKg: 60 }))
+      .resolves.toMatchObject({ id: "appointment-1" });
+    expect(findDonation).toHaveBeenCalledWith(expect.objectContaining({
+      where: { donorId: "donor-1", accepted: true },
+      select: { donationDate: true },
+    }));
   });
 });

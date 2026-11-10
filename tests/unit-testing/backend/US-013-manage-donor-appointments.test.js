@@ -13,6 +13,7 @@ const appointmentFindFirst = jest.fn();
 const appointmentFindUnique = jest.fn();
 const appointmentUpdate = jest.fn();
 const appointmentUpdateMany = jest.fn();
+const donationFindMany = jest.fn();
 
 const slotFindUnique = jest.fn();
 const slotUpdateMany = jest.fn();
@@ -25,6 +26,7 @@ jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
     appointment: {
       findMany: appointmentFindMany,
     },
+    donation: { findMany: donationFindMany },
     $transaction: transaction,
   },
 }));
@@ -72,6 +74,8 @@ function makeNewSlot() {
 
 beforeEach(() => {
   appointmentFindMany.mockReset();
+  donationFindMany.mockReset();
+  donationFindMany.mockResolvedValue([]);
   appointmentFindFirst.mockReset();
   appointmentFindUnique.mockReset();
   appointmentUpdate.mockReset();
@@ -104,15 +108,27 @@ describe("US-013 manage donor appointments", () => {
 
     appointmentFindMany.mockResolvedValue(appointments);
 
-    await expect(getDonorAppointments("donor-1")).resolves.toEqual(
-      appointments
-    );
+    await expect(getDonorAppointments("donor-1")).resolves.toEqual([
+      { ...appointments[0], donationRecordedOnDate: false },
+    ]);
 
     expect(appointmentFindMany).toHaveBeenCalledWith({
       where: { donorId: "donor-1" },
       include: { slot: true },
       orderBy: [{ createdAt: "desc" }],
     });
+    expect(donationFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ donorId: "donor-1" }),
+    }));
+  });
+
+  test("flags a donation recorded on an appointment date", async () => {
+    appointmentFindMany.mockResolvedValue([makeAppointment()]);
+    donationFindMany.mockResolvedValue([{ donationDate: new Date("2099-01-01T00:00:00.000Z") }]);
+
+    await expect(getDonorAppointments("donor-1")).resolves.toMatchObject([
+      { id: "appointment-1", donationRecordedOnDate: true },
+    ]);
   });
 
   test("reschedules an appointment and updates both slot capacities", async () => {

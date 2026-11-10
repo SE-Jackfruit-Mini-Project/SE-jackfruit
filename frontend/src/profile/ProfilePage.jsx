@@ -18,6 +18,7 @@ export function ProfilePage() {
   const [fullName, setFullName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState("");
+  const [bloodGroup, setBloodGroup] = useState("");
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -42,6 +43,7 @@ export function ProfilePage() {
         setFullName(user.fullName);
         setDateOfBirth(user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().slice(0, 10) : "");
         setGender(user.gender || "");
+        setBloodGroup(user.bloodGroup || "");
       })
       .catch((error) => {
         if (active) setMessage({ type: "error", text: error.message });
@@ -72,6 +74,7 @@ export function ProfilePage() {
           fullName,
           ...(!profile.dateOfBirth ? { dateOfBirth } : {}),
           ...(!profile.gender ? { gender } : {}),
+          ...(!profile.bloodGroup ? { bloodGroup } : {}),
         }),
       });
       const result = await response.json();
@@ -146,9 +149,33 @@ export function ProfilePage() {
                 : "Date of birth and gender are recorded once and cannot be changed here."}
             </p>
 
+            <label htmlFor="profileBloodGroup">Blood group</label>
+            <select
+              id="profileBloodGroup"
+              onChange={(event) => setBloodGroup(event.target.value)}
+              required={!profile.bloodGroup}
+              disabled={Boolean(profile.bloodGroup)}
+              value={bloodGroup}
+            >
+              <option value="">Select blood group</option>
+              <option value="A_POSITIVE">A+</option>
+              <option value="A_NEGATIVE">A-</option>
+              <option value="B_POSITIVE">B+</option>
+              <option value="B_NEGATIVE">B-</option>
+              <option value="AB_POSITIVE">AB+</option>
+              <option value="AB_NEGATIVE">AB-</option>
+              <option value="O_POSITIVE">O+</option>
+              <option value="O_NEGATIVE">O-</option>
+            </select>
+            <p className="field-hint">
+              {profile.bloodGroup
+                ? "Blood group is recorded once and cannot be changed here."
+                : "Add your blood group once. It will be used automatically when staff records a donation."}
+            </p>
+
             {message && <p className={`form-message ${message.type}`} role="status">{message.text}</p>}
             <button
-              disabled={saving || fullName.trim().length === 0 || ((!profile.dateOfBirth || !profile.gender) && (!dateOfBirth || !gender))}
+              disabled={saving || fullName.trim().length === 0 || ((!profile.dateOfBirth || !profile.gender) && (!dateOfBirth || !gender)) || (!profile.bloodGroup && !bloodGroup)}
               type="submit"
             >
               {saving ? "Saving changes…" : "Save changes"}
