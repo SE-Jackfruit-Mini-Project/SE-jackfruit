@@ -34,6 +34,7 @@ export function Dashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [inventoryVersion, setInventoryVersion] = useState(0);
+  const [allocationQueueVersion, setAllocationQueueVersion] = useState(0);
   const navigate = useNavigate();
 
   // Validate session on mount and redirect unauthenticated users to login
@@ -151,7 +152,13 @@ export function Dashboard() {
           }}
         >
           {user?.role === "ADMIN" && <ManageUsers currentAdminId={user.id} />}
-          <ReviewRequests />
+          <ReviewRequests
+            onReviewed={() => setAllocationQueueVersion((version) => version + 1)}
+          />
+          <AllocateRequests
+            refreshKey={allocationQueueVersion}
+            onAllocated={() => setInventoryVersion((version) => version + 1)}
+          />
           <BloodAvailability refreshKey={inventoryVersion} />
           <StockEntry
             onAdded={() => setInventoryVersion((version) => version + 1)}
@@ -214,12 +221,12 @@ export function Dashboard() {
 
           {user?.role === "DONOR" && (
             <>
-              {user.dateOfBirth && user.gender ? (
-                <BookAppointment />
+              {user.dateOfBirth && user.gender && user.bloodGroup ? (
+                <BookAppointment donor={user} />
               ) : (
                 <section style={{ marginTop: "28px", padding: "24px", background: "#fff", border: "1px solid #e7dcd3", borderRadius: "16px" }}>
                   <h3 style={{ marginTop: 0 }}>Complete your donor profile to book</h3>
-                  <p style={{ color: "#81716a" }}>Add your date of birth and gender once in your profile. They are used to check appointment eligibility.</p>
+                  <p style={{ color: "#81716a" }}>Add your date of birth, gender, and blood group once in your profile before booking.</p>
                   <Link className="dashboard-profile-link" to="/profile">Complete donor profile</Link>
                 </section>
               )}

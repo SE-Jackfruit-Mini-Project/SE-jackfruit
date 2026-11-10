@@ -10,24 +10,9 @@ import { prisma } from "../utils/prisma.js";
 import { deriveStatus } from "./inventory.service.js";
 
 /**
- * Standard list of acceptable blood group enumerations.
- */
-const bloodGroups = [
-  "A_POSITIVE",
-  "A_NEGATIVE",
-  "B_POSITIVE",
-  "B_NEGATIVE",
-  "AB_POSITIVE",
-  "AB_NEGATIVE",
-  "O_POSITIVE",
-  "O_NEGATIVE",
-];
-
-/**
  * Zod validation schema for recording a donation event.
  * Enforces:
  * - donorId must be non-empty string.
- * - bloodGroup must be a valid enum member.
  * - units must be integer between 1 and 50.
  * - donationDate must be valid YYYY-MM-DD not in the future.
  * - accepted must be explicitly provided boolean.
@@ -35,12 +20,6 @@ const bloodGroups = [
  */
 const donationSchema = z.object({
   donorId: z.string().trim().min(1, "Select a registered donor."),
-
-  bloodGroup: z.enum(bloodGroups, {
-    errorMap: () => ({
-      message: "Select a valid blood group.",
-    }),
-  }),
 
   units: z.coerce
     .number()
@@ -78,20 +57,25 @@ const donationSchema = z.object({
 }).strict();
 
 /**
- * Retrieves all registered users with the DONOR role for staff selection during donation intake.
+ * Retrieves donors with a recorded blood group and at least one appointment for donation intake.
  *
  * @async
  * @function getRegisteredDonors
- * @returns {Promise<Array<{id: string, fullName: string, email: string}>>} List of registered donors sorted alphabetically.
+ * @returns {Promise<Array<{id: string, fullName: string, email: string, bloodGroup: string}>>} Eligible appointment donors sorted alphabetically.
  */
 export async function getRegisteredDonors() {
   return prisma.user.findMany({
-    where: { role: "DONOR" },
+    where: {
+      role: "DONOR",
+      bloodGroup: { not: null },
+      appointments: { some: {} },
+    },
     orderBy: { fullName: "asc" },
     select: {
       id: true,
       fullName: true,
       email: true,
+      bloodGroup: true,
     },
   });
 }
@@ -133,7 +117,7 @@ export async function getRecentDonations() {
  * Requirements: US-011 / FR-022.
  * 
  * Transactional Behavior:
- * 1. Confirms donor user exists and has role DONOR.
+ * 1. Confirms donor has the DONOR role, a saved blood group, and an appointment.
  * 2. Inserts donation row linking donor and recording staff member.
  * 3. If accepted is true:
  *    - Upserts inventory row for target blood group, incrementing availableUnits.
@@ -160,14 +144,17 @@ export async function recordCompletedDonation(staffId, input) {
       where: {
         id: values.donorId,
         role: "DONOR",
+        bloodGroup: { not: null },
+        appointments: { some: {} },
       },
       select: {
         id: true,
+        bloodGroup: true,
       },
     });
 
     if (!donor) {
-      const error = new Error("The selected donor was not found.");
+      const error = new Error("The selected donor must have a saved blood group and an appointment.");
       error.status = 404;
       throw error;
     }
@@ -176,7 +163,7 @@ export async function recordCompletedDonation(staffId, input) {
       data: {
         donorId: donor.id,
         recordedById: staffId,
-        bloodGroup: values.bloodGroup,
+        bloodGroup: donor.bloodGroup,
         units: values.units,
         donationDate,
         accepted: values.accepted,
@@ -202,10 +189,10 @@ export async function recordCompletedDonation(staffId, input) {
     if (values.accepted) {
       const inventoryRow = await tx.inventory.upsert({
         where: {
-          bloodGroup: values.bloodGroup,
+          bloodGroup: donor.bloodGroup,
         },
         create: {
-          bloodGroup: values.bloodGroup,
+          bloodGroup: donor.bloodGroup,
           availableUnits: values.units,
           status: deriveStatus(values.units),
         },

@@ -4,8 +4,9 @@
  * an inquiry helper for donor eligibility pages in compliance with US-008.
  */
 
-// Eligibility rules remain a requirements decision. Do not invent medical rules here.
-export const approvedEligibilityInformation = null;
+// Project booking checks supplied for appointment booking. These are not clinical guidance.
+export const configuredEligibilityInformation =
+  "Project booking checks: donors must be 18 to 65 years old (inclusive) and weigh at least 45 kg. After staff or admin records an accepted donation, female donors must wait 4 calendar months and male donors 3 calendar months before booking again. These booking checks do not determine whether donating blood is medically safe; contact blood-bank staff for medical guidance.";
 
 /**
  * Evaluates the current state of approved donor eligibility guidance.
@@ -14,7 +15,7 @@ export const approvedEligibilityInformation = null;
  * @returns {{available: boolean, content: string | null}} Object indicating whether guidance is published.
  */
 export function getEligibilityState() {
-  return approvedEligibilityInformation
-    ? { available: true, content: approvedEligibilityInformation }
+  return configuredEligibilityInformation
+    ? { available: true, content: configuredEligibilityInformation }
     : { available: false, content: null };
 }

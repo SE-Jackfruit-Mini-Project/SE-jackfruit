@@ -68,6 +68,7 @@ export async function loginUser(input) {
     role: user.role,
     dateOfBirth: user.dateOfBirth,
     gender: user.gender,
+    bloodGroup: user.bloodGroup,
     isActive: user.isActive ?? true,
     createdAt: user.createdAt,
   };

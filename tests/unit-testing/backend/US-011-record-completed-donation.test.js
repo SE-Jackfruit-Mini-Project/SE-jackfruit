@@ -77,7 +77,7 @@ beforeEach(() => {
 describe("US-011 record completed blood donation", () => {
   test("returns registered donors only", async () => {
     const donors = [
-      { id: "donor-1", fullName: "Test Donor", email: "donor@test.com" },
+      { id: "donor-1", fullName: "Test Donor", email: "donor@test.com", bloodGroup: "O_POSITIVE" },
     ];
 
     userFindMany.mockResolvedValue(donors);
@@ -85,12 +85,17 @@ describe("US-011 record completed blood donation", () => {
     await expect(getRegisteredDonors()).resolves.toEqual(donors);
 
     expect(userFindMany).toHaveBeenCalledWith({
-      where: { role: "DONOR" },
+      where: {
+        role: "DONOR",
+        bloodGroup: { not: null },
+        appointments: { some: {} },
+      },
       orderBy: { fullName: "asc" },
       select: {
         id: true,
         fullName: true,
         email: true,
+        bloodGroup: true,
       },
     });
   });
@@ -123,7 +128,7 @@ describe("US-011 record completed blood donation", () => {
       accepted: true,
     };
 
-    userFindFirst.mockResolvedValue({ id: "donor-1" });
+    userFindFirst.mockResolvedValue({ id: "donor-1", bloodGroup: "O_POSITIVE" });
     donationCreate.mockResolvedValue(savedDonation);
 
     inventoryUpsert.mockResolvedValue({
@@ -145,7 +150,6 @@ describe("US-011 record completed blood donation", () => {
     await expect(
       recordCompletedDonation("staff-1", {
         donorId: "donor-1",
-        bloodGroup: "O_POSITIVE",
         units: 7,
         donationDate: "2026-01-15",
         accepted: true,
@@ -192,13 +196,12 @@ describe("US-011 record completed blood donation", () => {
       accepted: false,
     };
 
-    userFindFirst.mockResolvedValue({ id: "donor-1" });
+    userFindFirst.mockResolvedValue({ id: "donor-1", bloodGroup: "A_POSITIVE" });
     donationCreate.mockResolvedValue(savedDonation);
 
     await expect(
       recordCompletedDonation("staff-1", {
         donorId: "donor-1",
-        bloodGroup: "A_POSITIVE",
         units: 2,
         donationDate: "2026-01-15",
         accepted: false,
@@ -218,7 +221,6 @@ describe("US-011 record completed blood donation", () => {
     await expect(
       recordCompletedDonation("staff-1", {
         donorId: "donor-1",
-        bloodGroup: "A_POSITIVE",
         units: 0,
         donationDate: "2026-01-15",
         accepted: true,
@@ -236,13 +238,12 @@ describe("US-011 record completed blood donation", () => {
     await expect(
       recordCompletedDonation("staff-1", {
         donorId: "unknown-donor",
-        bloodGroup: "A_POSITIVE",
         units: 2,
         donationDate: "2026-01-15",
         accepted: true,
       })
     ).rejects.toMatchObject({
-      message: "The selected donor was not found.",
+      message: "The selected donor must have a saved blood group and an appointment.",
       status: 404,
     });
 

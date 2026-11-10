@@ -20,13 +20,10 @@ export function EligibilityPage() {
       <article className="eligibility-card" aria-labelledby="eligibility-title">
         <p className="eyebrow">Jackfruit Blood Donation</p>
         <h1 id="eligibility-title">Donor eligibility information</h1>
-        <p className="eligibility-intro">
-          Read the blood bank&apos;s approved guidance before arranging a donation.
-        </p>
 
         {eligibility.available ? (
-          <section aria-label="Approved donor eligibility guidance">
-            {eligibility.content}
+          <section aria-label="Project appointment booking criteria">
+            <p>{eligibility.content}</p>
           </section>
         ) : (
           <section className="eligibility-unavailable" aria-live="polite" role="status">
