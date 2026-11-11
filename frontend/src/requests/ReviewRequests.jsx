@@ -21,7 +21,7 @@ export function ReviewRequests({ onReviewed }) {
   const [message, setMessage] = useState(null);
 
   useEffect(() => {
-    fetchRequests();
+    void fetchRequests();
   }, [filter]);
 
   /**

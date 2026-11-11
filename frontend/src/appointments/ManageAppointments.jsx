@@ -40,7 +40,7 @@ export function ManageAppointments() {
 
   // Load appointments and slots when component is mounted
   useEffect(() => {
-    loadData();
+    void loadData();
   }, []);
 
   /**

@@ -114,7 +114,7 @@ export function DonorInformation() {
   }
 
   useEffect(() => {
-    loadDonors();
+    void loadDonors();
   }, []);
 
   const filteredDonors = donors.filter((donor) => {

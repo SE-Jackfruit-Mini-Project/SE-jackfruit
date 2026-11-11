@@ -34,7 +34,7 @@ export function ManageUsers({ currentAdminId }) {
 
   // Initial fetch of system users on component mount
   useEffect(() => {
-    fetchUsers();
+    void fetchUsers();
   }, []);
 
   /**
