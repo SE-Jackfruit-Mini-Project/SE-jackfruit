@@ -66,7 +66,7 @@ export function ManageInventory({ refreshKey = 0, onChanged }) {
   }
 
   useEffect(() => {
-    fetchInventory();
+    void fetchInventory();
   }, [refreshKey]);
 
   /**
@@ -124,7 +124,7 @@ export function ManageInventory({ refreshKey = 0, onChanged }) {
         text: `${result.message} ${formatGroup(result.inventory.bloodGroup)} now has ${result.inventory.availableUnits} units.`,
       });
       setForm({ bloodGroup: "", delta: "", reason: "" });
-      fetchInventory();
+      await fetchInventory();
       onChanged?.();
     } catch {
       setMessage({ type: "error", text: "Network error. Please try again." });

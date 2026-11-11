@@ -64,7 +64,7 @@ export function BloodAvailability({ refreshKey = 0 }) {
 
   // Refetch availability when refreshKey increments or on initial mount
   useEffect(() => {
-    fetchAvailability();
+    void fetchAvailability();
   }, [refreshKey]);
 
   return (
