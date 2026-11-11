@@ -48,7 +48,7 @@ export function RecordDonation() {
 
   // Initial data loading on mount
   useEffect(() => {
-    refreshData();
+    void refreshData();
   }, []);
 
   /**

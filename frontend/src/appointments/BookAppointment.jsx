@@ -100,7 +100,7 @@ export function BookAppointment({ donor }) {
 
   // Initial data loading on component mount
   useEffect(() => {
-    loadData();
+    void loadData();
   }, []);
 
   /**
@@ -175,7 +175,7 @@ export function BookAppointment({ donor }) {
       setBookingSlotId(null);
       setNotes("");
       setWeightKg("");
-      loadData();
+      await loadData();
     } catch {
       setMessage({ type: "error", text: "Network error. Please try again." });
     } finally {

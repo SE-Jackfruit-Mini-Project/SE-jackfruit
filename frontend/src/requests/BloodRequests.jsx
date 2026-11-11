@@ -37,7 +37,7 @@ export function BloodRequests() {
   });
 
   useEffect(() => {
-    fetchRequests();
+    void fetchRequests();
   }, []);
 
   /**
@@ -110,7 +110,7 @@ export function BloodRequests() {
         units: 1,
         urgency: "NORMAL",
       });
-      fetchRequests();
+      await fetchRequests();
     } catch {
       setMessage({ type: "error", text: "Network error. Please try again." });
     } finally {
