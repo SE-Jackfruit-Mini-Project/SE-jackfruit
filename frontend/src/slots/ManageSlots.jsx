@@ -30,7 +30,7 @@ export function ManageSlots() {
   });
 
   useEffect(() => {
-    fetchSlots();
+    void fetchSlots();
   }, []);
 
   /**
@@ -106,7 +106,7 @@ export function ManageSlots() {
         endTime: "10:00",
         maxCapacity: 5,
       });
-      fetchSlots();
+      await fetchSlots();
     } catch {
       setMessage({ type: "error", text: "Network error. Please try again." });
     } finally {

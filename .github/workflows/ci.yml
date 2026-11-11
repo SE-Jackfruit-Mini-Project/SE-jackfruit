@@ -23,11 +23,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+      - run: npm ci --ignore-scripts
+      - run: npm rebuild @prisma/engines
+      - run: npm run db:generate
       - run: npm test
       - run: npm run test:component
       - run: npm run test:integration
-
   # Frontend CI job: Sets up Node 22, installs dependencies, runs Vitest unit tests, and validates Vite production build
   frontend:
     name: Frontend tests and build
@@ -40,6 +41,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+      - run: npm ci --ignore-scripts
       - run: npm test
       - run: npm run build

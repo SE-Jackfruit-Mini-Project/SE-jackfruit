@@ -28,6 +28,8 @@ const PgStore = connectPgSimple(session);
 
 export const app = express();
 
+app.disable('x-powered-by');
+
 // Global request body parser with payload size restriction for security
 app.use(express.json({ limit: "16kb" }));
 

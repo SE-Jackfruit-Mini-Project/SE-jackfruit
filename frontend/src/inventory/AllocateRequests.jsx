@@ -57,7 +57,7 @@ export function AllocateRequests({ onAllocated, refreshKey = 0 }) {
   }
 
   useEffect(() => {
-    fetchRequests();
+    void fetchRequests();
   }, [refreshKey]);
 
   /**
@@ -92,7 +92,7 @@ export function AllocateRequests({ onAllocated, refreshKey = 0 }) {
       setMessage({ type: "error", text: "Network error. Please try again." });
     } finally {
       setAllocatingId(null);
-      fetchRequests();
+      await fetchRequests();
     }
   }
 
