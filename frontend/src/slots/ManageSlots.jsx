@@ -299,6 +299,16 @@ export function ManageSlots() {
               <tbody>
                 {slots.map((slot) => {
                   const isFull = slot.bookedCount >= slot.maxCapacity;
+                  const now = new Date();
+                  const slotStart = new Date(`${slot.date}T${slot.startTime}:00.000Z`);
+                  const isExpired = slotStart <= now;
+                  const statusLabel = isExpired
+                    ? "Expired"
+                    : !slot.isAvailable
+                      ? "Closed"
+                      : isFull
+                        ? "Full"
+                        : "Available";
                   return (
                     <tr key={slot.id} style={{ borderBottom: "1px solid #f0e6de" }}>
                       <td style={{ padding: "12px", fontWeight: 600 }}>{slot.date}</td>
@@ -316,11 +326,11 @@ export function ManageSlots() {
                             borderRadius: "12px",
                             fontSize: "12px",
                             fontWeight: 700,
-                            background: !slot.isAvailable || isFull ? "#f5f5f5" : "#e8f5e9",
-                            color: !slot.isAvailable || isFull ? "#757575" : "#2e7d32",
+                            background: isExpired || !slot.isAvailable || isFull ? "#f5f5f5" : "#e8f5e9",
+                            color: isExpired || !slot.isAvailable || isFull ? "#757575" : "#2e7d32",
                           }}
                         >
-                          {!slot.isAvailable ? "Closed" : isFull ? "Full" : "Available"}
+                          {statusLabel}
                         </span>
                       </td>
                     </tr>
