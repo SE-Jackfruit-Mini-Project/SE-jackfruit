@@ -118,11 +118,15 @@ export async function getAllSlots() {
  */
 export async function getAvailableSlots() {
   const today = new Date().toISOString().slice(0, 10);
+  const currentTime = new Date().toISOString().slice(11, 16);
 
   return prisma.appointmentSlot.findMany({
     where: {
-      date: { gte: today },
       isAvailable: true,
+      OR: [
+        { date: { gt: today } },
+        { date: today, startTime: { gt: currentTime } },
+      ],
     },
     orderBy: [
       { date: "asc" },
