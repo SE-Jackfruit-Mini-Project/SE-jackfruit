@@ -1,81 +1,79 @@
-# SE-Jackfruit — Static Code Review Report
+# STATIC CODE REVIEW REPORT
 
-**Project:** SE-Jackfruit Mini-Project  
-**Repository:** `SE-Jackfruit-Mini-Project/SE-jackfruit`  
-**Review date:** 11 November 2026  
-**Review branch:** `fix/static-analysis-findings`  
-**Target branch:** `main`  
-**Pull request status:** Created and submitted for review; merge and post-merge verification are pending.
+**Project:** SE-Jackfruit – Blood Donation Management System  
+**Review Type:** Static Code Analysis and Code Review  
+**Date:** 11 November 2026  
+**Pull Request:** #218 – Fix SonarQube Security and Reliability Findings  
+**Branch:** `fix/static-analysis-findings`  
+**Target Branch:** `main`
 
 ---
 
-## 1. Purpose
+## 1. Introduction
 
-This report records the static code review carried out on the SE-Jackfruit codebase using SonarQube. It summarises the initial findings, the source files affected, the corrections prepared, the local tests performed, and the items that still require verification.
+This report documents the static code review performed on the SE-Jackfruit Blood Donation Management System.
 
-The focus of this review was to address the security and reliability issues identified in the SonarQube results. The intention was not to change application behaviour unnecessarily or to clear warnings without understanding them. Each finding was considered in the context of the affected code and the project workflow.
+The review was conducted using SonarQube to identify security-sensitive coding practices and reliability issues in the project's frontend, backend, and CI workflow.
 
-## 2. Scope and review approach
+The objective was to address the identified findings, improve code reliability and security, validate the changes through existing tests, and submit the modifications for review through a GitHub pull request.
 
-The review covered:
+## 2. Scope of Review
 
-- The GitHub Actions workflow: `.github/workflows/ci.yml`.
-- The Express application setup: `backend/src/app.js`.
-- The frontend components listed in the Reliability findings below.
+The review covered the following areas:
 
-The review followed this sequence:
+- GitHub Actions CI workflow: `.github/workflows/ci.yml`
+- Backend Express application configuration: `backend/src/app.js`
+- Frontend React components responsible for appointments, donations, donors, inventory, blood requests, and slot management.
+- Asynchronous function calls and Promise handling.
+- Dependency installation practices in the CI pipeline.
 
-1. Inspect the SonarQube issue and its rule description.
-2. Locate the highlighted code in the repository.
-3. Review the surrounding code and the relevant asynchronous operation or workflow step.
-4. Apply a targeted correction where appropriate.
-5. Run the available local installation, test, and build commands.
-6. Submit the changes through a pull request for repository-owner review.
+A total of **21 original SonarQube findings** were identified:
 
+| Category | Number of findings |
+|---|---:|
+| Security | 5 |
+| Reliability | 16 |
+| **Total** | **21** |
 
-## 3. Initial SonarQube results
+## 3. Security Findings
 
-The screenshots reviewed showed **21 findings** in total:
-
-| Category | Rule | Occurrences | SonarQube severity |
-|---|---|---:|---|
-| Security | `githubactions:S8543` — Dependencies without locked resolved versions | 2 | Medium |
-| Security | `githubactions:S6505` — Lifecycle scripts allowed during package installation | 2 | Medium |
-| Security | `javascript:S5689` — Express framework version information disclosure | 1 | Low |
-| Reliability | `javascript:S9338` — Promise must be awaited, handled, or explicitly marked as intentionally ignored | 16 | Medium |
-| **Total** |  | **21** |  |
-
-The two GitHub Actions rules each appeared in both the backend and frontend installation steps. The Reliability screenshots contained repeat views of some findings; the count above is the 16 unique issue occurrences reviewed, not the number of screenshots.
-
-The line numbers below are the locations shown in the original SonarQube screenshots. They are baseline locations and may shift as surrounding code changes.
-
-## 4. Security findings and corrections
-
-### 4.1 Dependency versions should be locked
+### 3.1 Dependency Version Locking
 
 **Rule:** `githubactions:S8543`  
 **Severity:** Medium  
 **File:** `.github/workflows/ci.yml`  
-**Baseline locations:** Backend install step, line 26; frontend install step, line 41.  
 **Occurrences:** 2
 
-**Finding:** Both CI jobs used `npm install`. For repeatable CI installs, the project should install from its committed lockfile rather than resolving dependencies as part of each run.
+**Issue:**
 
-**Correction prepared:** Replaced the install commands with `npm ci --ignore-scripts` in both jobs. The backend and frontend `package-lock.json` files were confirmed to be tracked by Git.
+The CI workflow used `npm install` for backend and frontend dependencies. This did not enforce installation strictly from the committed lockfiles.
 
-### 4.2 Dependency lifecycle scripts should not run automatically during installation
+**Correction:**
+
+Both installation commands were changed to:
+
+```bash
+npm ci --ignore-scripts
+```
+
+This ensures dependencies are installed using the committed package lockfiles.
+
+### 3.2 Unrestricted Lifecycle Scripts During Installation
 
 **Rule:** `githubactions:S6505`  
 **Severity:** Medium  
 **File:** `.github/workflows/ci.yml`  
-**Baseline locations:** Backend install step, line 26; frontend install step, line 41.  
 **Occurrences:** 2
 
-**Finding:** Dependency lifecycle scripts were allowed to execute during package installation in CI. Such scripts can run commands as part of installation, so their execution should be controlled.
+**Issue:**
 
-**Correction prepared:** Both jobs now use `npm ci --ignore-scripts`.
+Dependency installation allowed package lifecycle scripts to run automatically.
 
-The backend requires Prisma setup, so the workflow explicitly performs the required steps after installation:
+**Correction:**
+
+The installation commands were updated to use `--ignore-scripts`.
+
+Since the backend uses Prisma, the required engine setup and client generation were added explicitly:
 
 ```yaml
 - run: npm ci --ignore-scripts
@@ -83,114 +81,184 @@ The backend requires Prisma setup, so the workflow explicitly performs the requi
 - run: npm run db:generate
 ```
 
-The existing backend unit, component, and integration test commands remain in the workflow. The frontend continues with its existing test and production-build commands after installation.
+This preserves the required Prisma setup while restricting automatic lifecycle script execution during installation.
 
-**Validation note:** This installation sequence was exercised locally on Windows: the Prisma engine rebuild and Prisma Client generation completed successfully. The GitHub Actions runner uses Ubuntu, so the actual CI run is still required before this workflow change can be considered fully verified.
-
-### 4.3 Express framework information disclosure
+### 3.3 Express Framework Information Disclosure
 
 **Rule:** `javascript:S5689`  
 **Severity:** Low  
 **File:** `backend/src/app.js`  
-**Baseline location:** Line 29.  
-**Occurrences:** 1
+**Original Location:** Line 29
 
-**Finding:** Express enables the `X-Powered-By` response header by default. The header identifies the framework used by the application.
+**Issue:**
 
-**Correction prepared:** Added the following immediately after the Express application is created:
+The Express application exposed its framework information through the `X-Powered-By` HTTP response header.
+
+**Correction:**
+
+The following statement was added immediately after the Express application instance was created:
 
 ```javascript
-export const app = express();
 app.disable('x-powered-by');
 ```
 
-This disables the framework-identifying response header.
+This prevents Express from exposing the framework identification header in responses.
 
-## 5. Reliability findings and corrections
+## 4. Reliability Findings
+
+### 4.1 Unhandled Promise Calls
 
 **Rule:** `javascript:S9338`  
-**SonarQube severity:** Medium  
-**Finding:** Promise-returning functions were called without an explicit `await`, rejection handler, or intentional `void` marker. The findings were concentrated in component data loading and refresh operations.
+**Severity:** Medium  
+**Total Occurrences:** 16
 
-The review identified 16 occurrences across 11 frontend components:
+**Issue:**
 
-| Repository file | Baseline line(s) | Function | Context / correction prepared |
-|---|---:|---|---|
-| `frontend/src/admin/ManageUsers.jsx` | 37 | `fetchUsers()` | Initial component data load — marked with `void` |
-| `frontend/src/appointments/BookAppointment.jsx` | 29, 97 | `loadData()` | Initial load — `void`; refresh after booking — `await` |
-| `frontend/src/appointments/ManageAppointments.jsx` | 43 | `loadData()` | Initial component data load — marked with `void` |
-| `frontend/src/donations/RecordDonation.jsx` | 58 | `refreshData()` | Initial data load — marked with `void` |
-| `frontend/src/donors/DonorInformation.jsx` | 76 | `loadDonors()` | Initial donor data load — marked with `void` |
-| `frontend/src/inventory/AllocateRequests.jsx` | 60, 95 | `fetchRequests()` | Initial load — `void`; refresh in the allocation handler — `await` |
-| `frontend/src/inventory/BloodAvailability.jsx` | 67 | `fetchAvailability()` | Initial component data load — marked with `void` |
-| `frontend/src/inventory/ManageInventory.jsx` | 69, 127 | `fetchInventory()` | Initial load — `void`; refresh after update — `await` |
-| `frontend/src/requests/BloodRequests.jsx` | 40, 113 | `fetchRequests()` | Initial load — `void`; refresh after submission — `await` |
-| `frontend/src/requests/ReviewRequests.jsx` | 24 | `fetchRequests()` | Initial component data load — marked with `void` |
-| `frontend/src/slots/ManageSlots.jsx` | 33, 109 | `fetchSlots()` | Initial load — `void`; refresh after slot creation — `await` |
-| **Total** |  |  | **16 occurrences** |
+SonarQube identified asynchronous function calls that were not explicitly awaited, handled with a rejection handler, or marked as intentionally ignored.
 
-### 5.1 Correction approach
+These calls primarily occurred in React `useEffect` hooks and operation handlers.
 
-- **11 initial-loading calls:** Added `void` to make the intentional fire-and-forget call explicit at the component-load call site.
-- **5 operation-triggered refresh calls:** Added `await` inside the corresponding asynchronous event handlers so the refresh Promise is explicitly awaited.
+**Correction Approach:**
 
-The called data-fetching functions contain their own request/error-handling logic. The `void` operator does not catch errors by itself; it only marks the Promise as intentionally not awaited. The internal error handling remains important.
+The changes were made according to the purpose of each call:
 
-Existing calls that already used `await`, event-handler references, and the parent callback used to trigger related inventory refreshes were left intact.
+- Initial data-loading calls inside `useEffect` were marked using `void` to indicate intentional fire-and-forget execution.
+- Data refresh calls following user operations were changed to `await` inside their existing asynchronous handlers.
+- Existing error handling and callback references were preserved.
 
-## 6. Local validation performed
+### 4.2 Files Modified
 
-The following local checks were completed on the remediation branch:
+| File | Original locations | Function | Correction |
+|---|---|---|---|
+| `frontend/src/admin/ManageUsers.jsx` | Line 37 | `fetchUsers()` | `void` |
+| `frontend/src/appointments/BookAppointment.jsx` | Lines 29, 97 | `loadData()` | Initial call: `void`; refresh: `await` |
+| `frontend/src/appointments/ManageAppointments.jsx` | Line 43 | `loadData()` | `void` |
+| `frontend/src/donations/RecordDonation.jsx` | Line 58 | `refreshData()` | `void` |
+| `frontend/src/donors/DonorInformation.jsx` | Line 76 | `loadDonors()` | `void` |
+| `frontend/src/inventory/AllocateRequests.jsx` | Lines 60, 95 | `fetchRequests()` | Initial call: `void`; refresh: `await` |
+| `frontend/src/inventory/BloodAvailability.jsx` | Line 67 | `fetchAvailability()` | `void` |
+| `frontend/src/inventory/ManageInventory.jsx` | Lines 69, 127 | `fetchInventory()` | Initial call: `void`; refresh: `await` |
+| `frontend/src/requests/BloodRequests.jsx` | Lines 40, 113 | `fetchRequests()` | Initial call: `void`; refresh: `await` |
+| `frontend/src/requests/ReviewRequests.jsx` | Line 24 | `fetchRequests()` | `void` |
+| `frontend/src/slots/ManageSlots.jsx` | Lines 33, 109 | `fetchSlots()` | Initial call: `void`; refresh: `await` |
 
-| Area | Validation | Result |
-|---|---|---|
-| Backend installation | `npm ci --ignore-scripts` | Successful |
-| Prisma engine setup | `npm rebuild @prisma/engines` | Successful |
-| Prisma Client | `npm run db:generate` | Successful; Prisma Client v6.19.3 generated |
-| Backend unit tests | `npm test` | 123 tests passed across 16 suites |
-| Backend component tests | `npm run test:component` | 16 tests passed across 4 suites |
-| Backend integration tests | `npm run test:integration` | 28 tests passed across 2 suites |
-| Frontend installation | `npm ci --ignore-scripts` | Successful |
-| Frontend tests | `npm test` | 1 test passed |
-| Frontend production build | `npm run build` | Successful |
-| Patch formatting | `git diff --check` | No whitespace errors reported |
+**Note:** The line numbers above refer to the original SonarQube findings. They may differ in the modified files.
 
-**Recorded local test total:** 168 tests passed (167 backend + 1 frontend). The final targeted Promise-handling edit was also followed by a successful local verification, as reported during the review.
+The final changes consist of:
 
-These are local results. They do not replace the GitHub Actions result for the pull request.
+- 11 intentional fire-and-forget calls marked using `void`.
+- 5 operation-triggered refresh calls changed to `await`.
 
-## 7. Separate dependency-audit observations
+## 5. Validation and Testing
 
-During the clean dependency installations, `npm audit` reported additional dependency vulnerabilities. These are separate from the 21 original SonarQube findings and were not resolved by the changes in this review PR.
+After implementing the changes, the existing project tests and build commands were executed.
 
-| Package area | Audit result |
+### 5.1 Backend Testing
+
+| Test command | Result |
+|---|---|
+| `npm test` | 16 suites, 123 tests passed |
+| `npm run test:component` | 4 suites, 16 tests passed |
+| `npm run test:integration` | 2 suites, 28 tests passed |
+
+**Total backend tests passed: 167**
+
+### 5.2 Frontend Testing
+
+| Command | Result |
+|---|---|
+| `npm test` | 1 test passed |
+| `npm run build` | Production build successful |
+
+**Total frontend tests passed: 1**
+
+### 5.3 Prisma Setup
+
+The following commands were executed successfully:
+
+```bash
+npm ci --ignore-scripts
+npm rebuild @prisma/engines
+npm run db:generate
+```
+
+Prisma Client generation completed successfully.
+
+### 5.4 Code Change Validation
+
+The following Git validation commands were also used:
+
+```bash
+git diff --check
+git diff --cached --check
+```
+
+No whitespace errors were reported.
+
+**Total local tests passed: 168**
+
+## 6. CI and SonarCloud Verification
+
+The changes were pushed to the `fix/static-analysis-findings` branch and submitted through Pull Request #218.
+
+The pull request checks completed successfully.
+
+| Verification | Result |
+|---|---|
+| GitHub Actions checks | 3/3 passed |
+| SonarCloud Quality Gate | Passed |
+| New issues reported in PR analysis | 0 |
+| Accepted issues reported | 0 |
+| New security hotspots | 0 |
+| New dependency risks | 0 |
+
+The SonarCloud pull request analysis passed its Quality Gate with no new issues reported.
+
+The PR analysis result should not be interpreted as confirmation that every original finding has disappeared from the main branch. Final verification of the original findings is to be performed after the pull request is merged and the main branch is reanalysed.
+
+## 7. Additional Dependency Audit Observations
+
+Separate `npm audit` checks were performed for the backend and frontend dependencies.
+
+The audit reported:
+
+| Component | Reported vulnerabilities |
 |---|---:|
-| Backend | 10 vulnerabilities: 6 low, 4 high |
-| Frontend | 6 vulnerabilities: 3 moderate, 1 high, 2 critical |
-| **Total** | **16 vulnerabilities** |
+| Backend | 10 |
+| Frontend | 6 |
+| **Total** | **16** |
 
-The audit's suggested automatic fixes involved potentially breaking dependency changes (including major-version changes to Jest, Prisma, Zod, and Vitest). `npm audit fix --dry-run` was used to inspect the proposed changes; no forced dependency upgrade was applied as part of this PR.
+Some suggested automatic fixes involved major version upgrades to existing project dependencies, which could introduce breaking changes.
 
-These dependency findings should be triaged separately. They should not be represented as resolved by the current SonarQube remediation.
+Therefore, `npm audit fix --force` was not executed.
 
-## 8. Pending verification and follow-up
+These dependency audit findings are separate from the original 21 SonarQube findings addressed in this pull request. They remain to be reviewed and handled separately.
 
-The following items remain open at the time of writing:
+## 8. Pull Request Status
 
-1. **GitHub Actions:** Confirm the PR workflow passes on the Ubuntu runner, including Prisma setup, backend tests, frontend tests, and frontend build.
-2. **SonarQube PR analysis:** Re-run or inspect the PR analysis and confirm whether the 5 Security and 16 Reliability findings are resolved or no longer reported.
-3. **Post-merge analysis:** After repository-owner approval and merge, inspect the `main` branch analysis to confirm the final status. A local code change or passing local test is not, by itself, proof that a SonarQube issue has been closed.
-4. **Dependency audit:** Triage the 16 npm audit vulnerabilities in a separate dependency-maintenance task or PR.
-5. **Testing and coverage deliverables:** Keep the project's required unit/system test reports and code/branch coverage reports in `docs`. This static review report does not replace those reports.
+The implemented changes and report were committed to the branch:
+
+`fix/static-analysis-findings`
+
+The changes were submitted through:
+
+**PR #218 – fix: address SonarQube security and reliability findings**
+
+The pull request includes the CI workflow modifications, Express configuration change, frontend Promise handling corrections, and this static code review report.
+
+**Current status:** Pull request checks have passed. Formal review and merge by the repository reviewer are pending.
+
 
 ## 9. Conclusion
 
-The review identified 21 SonarQube findings: 5 Security and 16 Reliability. Targeted corrections have been prepared in `.github/workflows/ci.yml`, `backend/src/app.js`, and the 11 frontend components listed in this report. Local installation, test, Prisma-generation, and build checks were successful.
+The static code review identified 21 original SonarQube findings across the SE-Jackfruit project.
 
-The changes have been submitted in a pull request from `fix/static-analysis-findings` to `main` for repository-owner review. The findings should be marked as resolved only after the PR checks and subsequent SonarQube analysis confirm the result. The additional npm audit vulnerabilities remain a separate follow-up.
+The identified security and reliability issues were addressed through changes to the CI dependency installation process, Express application configuration, and asynchronous Promise handling in the frontend components.
 
+The modified project passed 168 local tests, the frontend production build completed successfully, and the pull request checks and SonarCloud Quality Gate passed.
 
+The changes and report have been submitted through PR #218. Formal review, merge, and final verification of the original findings on the main branch remain pending.
 
----
-
-**Report status:** Prepared; pending GitHub Actions, SonarQube re-analysis, and post-merge confirmation.
+**Report Status:** Submitted for review  
+**Pull Request:** #218  
+**Branch:** `fix/static-analysis-findings`
