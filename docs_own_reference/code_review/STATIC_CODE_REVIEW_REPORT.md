@@ -32,7 +32,6 @@ The review followed this sequence:
 5. Run the available local installation, test, and build commands.
 6. Submit the changes through a pull request for repository-owner review.
 
-This reflects the distinction covered in the Software Engineering Unit 3 slides: static analysis examines source code without executing it, while software testing executes the system and observes its behaviour. Human inspection is used to interpret tool findings and assess their relevance. See Unit 3 slides 140, 198–200, and 324–327.
 
 ## 3. Initial SonarQube results
 
@@ -190,14 +189,7 @@ The review identified 21 SonarQube findings: 5 Security and 16 Reliability. Targ
 
 The changes have been submitted in a pull request from `fix/static-analysis-findings` to `main` for repository-owner review. The findings should be marked as resolved only after the PR checks and subsequent SonarQube analysis confirm the result. The additional npm audit vulnerabilities remain a separate follow-up.
 
-## 10. Project references
 
-This report was prepared with reference to:
-
-- **JACKFRUIT - SE Mini-Project Software Engineering Project Guidelines (2026):** requires CI/CD, code reviews, security validation, static code analysis using SonarQube or a similar tool, PRs, and test/coverage evidence.
-- **Project Evaluation Checklist:** includes PR review, testing and quality assurance, generated reports in `docs`, and final demo requirements.
-- **Final Demo and Viva Preparation FAQs:** identifies the final testing reports expected in the repository, including Unit, System Validation, Code Coverage, and Branch Coverage reports.
-- **Software Engineering Unit 3 lecture slides:** Static Analysis (slide 140), good static-analysis tool characteristics (slides 198–200), and Inspections and Testing (slides 324–327).
 
 ---
 
