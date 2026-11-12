@@ -22,6 +22,7 @@ import { RecordDonation } from "../donations/RecordDonation.jsx";
 import { ManageAppointments } from "../appointments/ManageAppointments.jsx";
 import { DonorInformation } from "../donors/DonorInformation.jsx";
 import { DonationHistory } from "../donations/DonationHistory.jsx";
+import { OperationApprovals } from "../admin/OperationApprovals.jsx";
 
 /**
  * Dashboard component serving as the main view router once authenticated.
@@ -35,6 +36,7 @@ export function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [inventoryVersion, setInventoryVersion] = useState(0);
   const [allocationQueueVersion, setAllocationQueueVersion] = useState(0);
+  const [slotVersion, setSlotVersion] = useState(0);
   const navigate = useNavigate();
 
   // Validate session on mount and redirect unauthenticated users to login
@@ -152,6 +154,13 @@ export function Dashboard() {
           }}
         >
           {user?.role === "ADMIN" && <ManageUsers currentAdminId={user.id} />}
+          <OperationApprovals
+            userRole={user.role}
+            onDecision={() => {
+              setInventoryVersion((version) => version + 1);
+              setSlotVersion((version) => version + 1);
+            }}
+          />
           <ReviewRequests
             onReviewed={() => setAllocationQueueVersion((version) => version + 1)}
           />
@@ -161,14 +170,16 @@ export function Dashboard() {
           />
           <BloodAvailability refreshKey={inventoryVersion} />
           <StockEntry
+            userRole={user.role}
             onAdded={() => setInventoryVersion((version) => version + 1)}
           />
           <ManageInventory
             refreshKey={inventoryVersion}
+            userRole={user.role}
             onChanged={() => setInventoryVersion((version) => version + 1)}
           />
 
-          <ManageSlots />
+          <ManageSlots userRole={user.role} refreshKey={slotVersion} />
           <DonorInformation />
           <RecordDonation />
         </div>

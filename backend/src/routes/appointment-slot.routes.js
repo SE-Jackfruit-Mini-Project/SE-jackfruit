@@ -10,7 +10,9 @@ import {
   createAppointmentSlot,
   getAllSlots,
   getAvailableSlots,
+  deleteAppointmentSlot,
 } from "../services/appointment-slot.service.js";
+import { submitOperationProposal } from "../services/operation-approval.service.js";
 
 export const appointmentSlotRouter = Router();
 
@@ -35,6 +37,13 @@ appointmentSlotRouter.post(
   requireRole("STAFF", "ADMIN"),
   async (request, response, next) => {
     try {
+      if (request.session.user.role === "STAFF") {
+        const approval = await submitOperationProposal(request.session.user.id, "CREATE_SLOT", request.body);
+        return response.status(202).json({
+          message: "Appointment slot proposal sent to an administrator for approval.",
+          approval,
+        });
+      }
       const slot = await createAppointmentSlot(request.body);
       return response.status(201).json({
         message: "Appointment slot created successfully.",
@@ -58,6 +67,32 @@ appointmentSlotRouter.post(
       return next(error);
     }
   }
+);
+
+appointmentSlotRouter.delete(
+  "/:slotId",
+  requireAuth,
+  requireRole("STAFF", "ADMIN"),
+  async (request, response, next) => {
+    try {
+      if (request.session.user.role === "STAFF") {
+        const approval = await submitOperationProposal(request.session.user.id, "DELETE_SLOT", {
+          slotId: request.params.slotId,
+        });
+        return response.status(202).json({
+          message: "Slot deletion proposal sent to an administrator for approval.",
+          approval,
+        });
+      }
+      const slot = await deleteAppointmentSlot(request.params.slotId);
+      return response.json({ message: "Appointment slot deleted.", slotId: slot.id });
+    } catch (error) {
+      if (error.status === 404 || error.status === 409) {
+        return response.status(error.status).json({ message: error.message });
+      }
+      return next(error);
+    }
+  },
 );
 
 /**

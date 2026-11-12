@@ -59,11 +59,11 @@ const slotInputSchema = z
  * @throws {Error} 409 if slot overlaps with an existing slot on the specified date.
  * @throws {z.ZodError} If input schema constraints fail.
  */
-export async function createAppointmentSlot(input) {
-  const values = slotInputSchema.parse(input);
+export async function createAppointmentSlot(input, database = prisma) {
+  const values = validateAppointmentSlotInput(input);
 
   // Check for exact duplicate or overlapping slot on the same date
-  const existingSlots = await prisma.appointmentSlot.findMany({
+  const existingSlots = await database.appointmentSlot.findMany({
     where: { date: values.date },
   });
 
@@ -77,7 +77,7 @@ export async function createAppointmentSlot(input) {
     throw error;
   }
 
-  const slot = await prisma.appointmentSlot.create({
+  const slot = await database.appointmentSlot.create({
     data: {
       date: values.date,
       startTime: values.startTime,
@@ -88,6 +88,30 @@ export async function createAppointmentSlot(input) {
     },
   });
 
+  return slot;
+}
+
+export function validateAppointmentSlotInput(input) {
+  return slotInputSchema.parse(input);
+}
+
+/** Deletes an unused appointment slot. Slots with appointment records are retained for history. */
+export async function deleteAppointmentSlot(slotId, database = prisma) {
+  const slot = await database.appointmentSlot.findUnique({
+    where: { id: slotId },
+    include: { _count: { select: { appointments: true } } },
+  });
+  if (!slot) {
+    const error = new Error("Appointment slot was not found.");
+    error.status = 404;
+    throw error;
+  }
+  if (slot._count.appointments > 0) {
+    const error = new Error("This slot has appointment records and cannot be deleted.");
+    error.status = 409;
+    throw error;
+  }
+  await database.appointmentSlot.delete({ where: { id: slotId } });
   return slot;
 }
 

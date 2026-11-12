@@ -25,6 +25,7 @@ let donations;
 let inventory;
 let movements;
 let bloodRequests;
+let operationApprovals;
 let nextId;
 
 const selected = (record, selection) => {
@@ -64,7 +65,12 @@ const prisma = {
       if (where.date?.gte) return slot.date >= where.date.gte && (!where.isAvailable || slot.isAvailable === where.isAvailable);
       return true;
     }),
-    findUnique: async ({ where }) => slots.get(where.id) ?? null,
+    findUnique: async ({ where, include, select }) => {
+      const slot = slots.get(where.id);
+      return slot && (include?._count || select?._count)
+        ? { ...slot, _count: { appointments: [...appointments.values()].filter((item) => item.slotId === slot.id).length } }
+        : slot ?? null;
+    },
     create: async ({ data }) => {
       const record = { id: `slot-${++nextId}`, ...data };
       slots.set(record.id, record);
@@ -73,6 +79,11 @@ const prisma = {
     update: async ({ where, data }) => {
       const record = slots.get(where.id);
       Object.assign(record, data);
+      return { ...record };
+    },
+    delete: async ({ where }) => {
+      const record = slots.get(where.id);
+      slots.delete(where.id);
       return { ...record };
     },
   },
@@ -151,10 +162,41 @@ const prisma = {
       return { count: 1 };
     },
   },
+  operationApproval: {
+    create: async ({ data }) => {
+      const record = { id: `approval-${++nextId}`, status: "PENDING", createdAt: new Date(), reviewedAt: null, ...data };
+      operationApprovals.set(record.id, record);
+      return { ...record, requester: users.get(record.requesterId) ?? null };
+    },
+    findUnique: async ({ where }) => {
+      const record = operationApprovals.get(where.id);
+      return record ? {
+        ...record,
+        requester: users.get(record.requesterId) ?? null,
+        reviewer: record.reviewerId ? users.get(record.reviewerId) ?? null : null,
+      } : null;
+    },
+    findMany: async ({ where = {} }) => [...operationApprovals.values()]
+      .filter((item) => (!where.status || item.status === where.status)
+        && (!where.requesterId || item.requesterId === where.requesterId))
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map((item) => ({
+        ...item,
+        requester: users.get(item.requesterId) ?? null,
+        reviewer: item.reviewerId ? users.get(item.reviewerId) ?? null : null,
+      })),
+    updateMany: async ({ where, data }) => {
+      const record = operationApprovals.get(where.id);
+      if (!record || (where.status && record.status !== where.status)) return { count: 0 };
+      Object.assign(record, data);
+      return { count: 1 };
+    },
+  },
   $transaction: async (callback) => {
     const snapshot = {
       users: cloneMap(users), slots: cloneMap(slots), appointments: cloneMap(appointments),
       donations: cloneMap(donations), inventory: cloneMap(inventory), bloodRequests: cloneMap(bloodRequests),
+      operationApprovals: cloneMap(operationApprovals),
       movements: structuredClone(movements),
     };
     try {
@@ -166,6 +208,7 @@ const prisma = {
       donations = snapshot.donations;
       inventory = snapshot.inventory;
       bloodRequests = snapshot.bloodRequests;
+      operationApprovals = snapshot.operationApprovals;
       movements = snapshot.movements;
       throw error;
     }
@@ -186,6 +229,7 @@ beforeEach(() => {
   inventory = new Map();
   movements = [];
   bloodRequests = new Map();
+  operationApprovals = new Map();
   nextId = 0;
 });
 
@@ -207,13 +251,23 @@ describe("full system integration workflow", () => {
     expect(profile.body.user.bloodGroup).toBe("B_POSITIVE");
 
     const slotDate = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-    const slotResponse = await request(app).post("/api/v1/appointment-slots").set(as("STAFF", "staff-1")).send({
+    const proposedSlot = await request(app).post("/api/v1/appointment-slots").set(as("STAFF", "staff-1")).send({
       date: slotDate, startTime: "09:00", endTime: "10:00", maxCapacity: 5,
     });
-    expect(slotResponse.status).toBe(201);
+    expect(proposedSlot.status).toBe(202);
+    expect(slots.size).toBe(0);
+    const approvedSlot = await request(app).post(`/api/v1/operation-approvals/${proposedSlot.body.approval.id}/review`)
+      .set(as("ADMIN", "admin-1")).send({ decision: "APPROVE" });
+    expect(approvedSlot.status).toBe(200);
+    expect(slots.size).toBe(1);
+    const duplicateSlotApproval = await request(app).post(`/api/v1/operation-approvals/${proposedSlot.body.approval.id}/review`)
+      .set(as("ADMIN", "admin-1")).send({ decision: "APPROVE" });
+    expect(duplicateSlotApproval.status).toBe(409);
+    expect(slots.size).toBe(1);
+    const slotId = [...slots.keys()][0];
 
     const booking = await request(app).post("/api/v1/appointments").set(as("DONOR", donorId)).send({
-      slotId: slotResponse.body.slot.id, weightKg: 55,
+      slotId, weightKg: 55,
     });
     expect(booking.status).toBe(201);
     expect(booking.body.appointment.status).toBe("SCHEDULED");
@@ -261,5 +315,110 @@ describe("full system integration workflow", () => {
     expect(bloodRequests.get("request-shortage").status).toBe("APPROVED");
     expect(inventory.get("inventory-1").availableUnits).toBe(1);
     expect(movements).toHaveLength(0);
+  });
+
+  test("staff inventory additions and adjustments only affect stock after admin approval", async () => {
+    const addition = await request(app).post("/api/v1/inventory/stock").set(as("STAFF", "staff-1")).send({
+      bloodGroup: "A_POSITIVE", units: 8, type: "PURCHASE", reason: "Regional delivery",
+    });
+    expect(addition.status).toBe(202);
+    expect(inventory.size).toBe(0);
+
+    const additionApproval = await request(app).post(`/api/v1/operation-approvals/${addition.body.approval.id}/review`)
+      .set(as("ADMIN", "admin-1")).send({ decision: "APPROVE" });
+    expect(additionApproval.status).toBe(200);
+    const inventoryRow = [...inventory.values()][0];
+    expect(inventoryRow.availableUnits).toBe(8);
+    expect(movements).toHaveLength(1);
+
+    const adjustment = await request(app).patch("/api/v1/inventory/A_POSITIVE").set(as("STAFF", "staff-1")).send({
+      delta: -3, reason: "Expired units",
+    });
+    expect(adjustment.status).toBe(202);
+    expect(inventoryRow.availableUnits).toBe(8);
+
+    const adjustmentApproval = await request(app).post(`/api/v1/operation-approvals/${adjustment.body.approval.id}/review`)
+      .set(as("ADMIN", "admin-1")).send({ decision: "APPROVE" });
+    expect(adjustmentApproval.status).toBe(200);
+    expect(inventoryRow.availableUnits).toBe(5);
+    expect(movements.map((movement) => movement.delta)).toEqual([8, -3]);
+
+    const rejectedAddition = await request(app).post("/api/v1/inventory/stock").set(as("STAFF", "staff-1")).send({
+      bloodGroup: "A_POSITIVE", units: 4, type: "TRANSFER_IN",
+    });
+    expect(rejectedAddition.status).toBe(202);
+    const rejection = await request(app).post(`/api/v1/operation-approvals/${rejectedAddition.body.approval.id}/review`)
+      .set(as("ADMIN", "admin-1")).send({ decision: "REJECT", decisionNote: "Delivery not verified" });
+    expect(rejection.status).toBe(200);
+    expect(inventoryRow.availableUnits).toBe(5);
+    expect(movements).toHaveLength(2);
+  });
+
+  test("admin can reject a slot deletion proposal and slots with appointments cannot be deleted", async () => {
+    const occupied = await request(app).post("/api/v1/appointment-slots").set(as("ADMIN", "admin-1")).send({
+      date: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
+      startTime: "12:00", endTime: "13:00", maxCapacity: 2,
+    });
+    expect(occupied.status).toBe(201);
+    const bookedSlotId = occupied.body.slot.id;
+    appointments.set("appointment-existing", { id: "appointment-existing", slotId: bookedSlotId, status: "SCHEDULED" });
+
+    const blockedProposal = await request(app).delete(`/api/v1/appointment-slots/${bookedSlotId}`).set(as("STAFF", "staff-1"));
+    expect(blockedProposal.status).toBe(409);
+    expect(slots.has(bookedSlotId)).toBe(true);
+
+    const empty = await request(app).post("/api/v1/appointment-slots").set(as("ADMIN", "admin-1")).send({
+      date: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
+      startTime: "14:00", endTime: "15:00", maxCapacity: 2,
+    });
+    const deletion = await request(app).delete(`/api/v1/appointment-slots/${empty.body.slot.id}`).set(as("STAFF", "staff-1"));
+    expect(deletion.status).toBe(202);
+    expect(slots.has(empty.body.slot.id)).toBe(true);
+    const rejected = await request(app).post(`/api/v1/operation-approvals/${deletion.body.approval.id}/review`)
+      .set(as("ADMIN", "admin-1")).send({ decision: "REJECT" });
+    expect(rejected.status).toBe(200);
+    expect(slots.has(empty.body.slot.id)).toBe(true);
+
+    const deletable = await request(app).post("/api/v1/appointment-slots").set(as("ADMIN", "admin-1")).send({
+      date: new Date(Date.now() + 4 * 86400000).toISOString().slice(0, 10),
+      startTime: "18:00", endTime: "19:00", maxCapacity: 2,
+    });
+    const approvedDeletion = await request(app).delete(`/api/v1/appointment-slots/${deletable.body.slot.id}`).set(as("STAFF", "staff-1"));
+    expect(approvedDeletion.status).toBe(202);
+    const deletionDecision = await request(app).post(`/api/v1/operation-approvals/${approvedDeletion.body.approval.id}/review`)
+      .set(as("ADMIN", "admin-1")).send({ decision: "APPROVE" });
+    expect(deletionDecision.status).toBe(200);
+    expect(slots.has(deletable.body.slot.id)).toBe(false);
+  });
+
+  test("staff cannot review proposals and non-operational roles cannot submit them", async () => {
+    const proposal = await request(app).post("/api/v1/appointment-slots").set(as("STAFF", "staff-1")).send({
+      date: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
+      startTime: "16:00", endTime: "17:00", maxCapacity: 2,
+    });
+    expect(proposal.status).toBe(202);
+    const staffReview = await request(app).post(`/api/v1/operation-approvals/${proposal.body.approval.id}/review`)
+      .set(as("STAFF", "staff-2")).send({ decision: "APPROVE" });
+    expect(staffReview.status).toBe(403);
+    expect(operationApprovals.get(proposal.body.approval.id).status).toBe("PENDING");
+    const rejection = await request(app).post(`/api/v1/operation-approvals/${proposal.body.approval.id}/review`)
+      .set(as("ADMIN", "admin-1")).send({ decision: "REJECT" });
+    expect(rejection.status).toBe(200);
+    expect(slots.size).toBe(0);
+
+    for (const role of ["DONOR", "HOSPITAL_REQUESTER"]) {
+      const response = await request(app).post("/api/v1/operation-approvals").set(as(role, `${role}-1`)).send({
+        action: "ADD_STOCK", payload: { bloodGroup: "A_POSITIVE", units: 1, type: "PURCHASE" },
+      });
+      expect(response.status).toBe(403);
+      expect((await request(app).get("/api/v1/operation-approvals").set(as(role, `${role}-1`))).status).toBe(403);
+    }
+    const staffProposals = await request(app).get("/api/v1/operation-approvals").set(as("STAFF", "staff-1"));
+    expect(staffProposals.status).toBe(200);
+    expect(staffProposals.body.approvals).toHaveLength(1);
+    expect(staffProposals.body.approvals[0].requesterId).toBe("staff-1");
+    const otherStaffProposals = await request(app).get("/api/v1/operation-approvals").set(as("STAFF", "staff-2"));
+    expect(otherStaffProposals.status).toBe(200);
+    expect(otherStaffProposals.body.approvals).toHaveLength(0);
   });
 });
