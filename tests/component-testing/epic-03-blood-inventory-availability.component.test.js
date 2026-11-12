@@ -5,16 +5,25 @@ import request from "supertest";
 const addStock = jest.fn();
 const adjustStock = jest.fn();
 const getAvailability = jest.fn();
+const validateStockAddition = jest.fn();
+const validateStockAdjustment = jest.fn();
+const submitOperationProposal = jest.fn();
+const decideOperationApproval = jest.fn();
+const listOperationApprovals = jest.fn();
+class OperationApprovalError extends Error {}
 
-jest.unstable_mockModule("../../backend/src/services/inventory.service.js", () => ({ addStock, adjustStock, getAvailability }));
+jest.unstable_mockModule("../../backend/src/services/inventory.service.js", () => ({ addStock, adjustStock, getAvailability, validateStockAddition, validateStockAdjustment }));
+jest.unstable_mockModule("../../backend/src/services/operation-approval.service.js", () => ({ submitOperationProposal, decideOperationApproval, listOperationApprovals, OperationApprovalError }));
 
 const { inventoryRouter } = await import("../../backend/src/routes/inventory.routes.js");
+const { operationApprovalRouter } = await import("../../backend/src/routes/operation-approval.routes.js");
 
 function createApp(user) {
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => { if (user) req.session = { user }; next(); });
   app.use("/api/v1/inventory", inventoryRouter);
+  app.use("/api/v1/operation-approvals", operationApprovalRouter);
   return app;
 }
 
@@ -39,27 +48,43 @@ describe("EPIC-03 Blood Inventory and Availability component", () => {
     expect(addStock).not.toHaveBeenCalled();
   });
 
-  test("staff can record a non-donation stock intake", async () => {
+  test("staff stock intake stays pending until an admin approves it", async () => {
     const entry = { bloodGroup: "B_POSITIVE", units: 3, type: "TRANSFER_IN", reason: "Regional bank" };
-    addStock.mockResolvedValue({ bloodGroup: "B_POSITIVE", availableUnits: 3, status: "LOW" });
+    submitOperationProposal.mockResolvedValue({ id: "approval-stock", status: "PENDING" });
 
     const response = await request(createApp({ id: "staff-1", role: "STAFF" }))
       .post("/api/v1/inventory/stock").send(entry);
 
-    expect(response.status).toBe(201);
-    expect(response.body.inventory.availableUnits).toBe(3);
-    expect(addStock).toHaveBeenCalledWith("staff-1", entry);
+    expect(response.status).toBe(202);
+    expect(response.body.approval.status).toBe("PENDING");
+    expect(submitOperationProposal).toHaveBeenCalledWith("staff-1", "ADD_STOCK", entry);
+    expect(addStock).not.toHaveBeenCalled();
   });
 
-  test("staff can apply a reasoned quantity adjustment", async () => {
+  test("staff inventory adjustment stays pending while admin changes apply directly", async () => {
+    submitOperationProposal.mockResolvedValue({ id: "approval-adjustment", status: "PENDING" });
     adjustStock.mockResolvedValue({ bloodGroup: "B_POSITIVE", availableUnits: 1, status: "LOW" });
 
-    const response = await request(createApp({ id: "staff-1", role: "STAFF" }))
+    const staffResponse = await request(createApp({ id: "staff-1", role: "STAFF" }))
+      .patch("/api/v1/inventory/B_POSITIVE").send({ delta: -2, reason: "Spoiled units" });
+    const adminResponse = await request(createApp({ id: "admin-1", role: "ADMIN" }))
       .patch("/api/v1/inventory/B_POSITIVE").send({ delta: -2, reason: "Spoiled units" });
 
+    expect(staffResponse.status).toBe(202);
+    expect(staffResponse.body.approval.status).toBe("PENDING");
+    expect(submitOperationProposal).toHaveBeenCalledWith("staff-1", "ADJUST_STOCK", { delta: -2, reason: "Spoiled units", bloodGroup: "B_POSITIVE" });
+    expect(adminResponse.status).toBe(200);
+    expect(adminResponse.body.inventory).toMatchObject({ availableUnits: 1, status: "LOW" });
+    expect(adjustStock).toHaveBeenCalledWith("admin-1", { delta: -2, reason: "Spoiled units", bloodGroup: "B_POSITIVE" });
+  });
+
+  test("only admins can approve staff inventory proposals", async () => {
+    decideOperationApproval.mockResolvedValue({ id: "approval-stock", status: "APPROVED" });
+    const response = await request(createApp({ id: "admin-1", role: "ADMIN" }))
+      .post("/api/v1/operation-approvals/approval-stock/review").send({ decision: "APPROVE" });
+
     expect(response.status).toBe(200);
-    expect(response.body.inventory).toMatchObject({ availableUnits: 1, status: "LOW" });
-    expect(adjustStock).toHaveBeenCalledWith("staff-1", { delta: -2, reason: "Spoiled units", bloodGroup: "B_POSITIVE" });
+    expect(decideOperationApproval).toHaveBeenCalledWith("approval-stock", "admin-1", "APPROVE", "");
   });
 
   test("donors cannot read or modify staff inventory controls", async () => {

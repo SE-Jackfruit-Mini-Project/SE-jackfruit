@@ -22,6 +22,9 @@ Validate account creation, login, authentication before protected actions, role-
 - [ ] Confirm only authorized staff can approve or reject requests.
 - [ ] Confirm allocation is allowed only for approved requests.
 - [ ] Confirm administrator permissions for viewing users, managing roles, and activating/deactivating accounts are clear.
+- [ ] Confirm administrators alone can approve/reject staff operational proposals for slots and inventory.
+- [ ] Confirm staff can submit and track their own proposals but cannot approve proposals or bypass approval with direct API calls.
+- [ ] Confirm requesters and donors cannot access or submit staff operational proposals.
 - [ ] Check requirements for clarity, completeness, consistency, feasibility, and testability.
 - [ ] Check consistency with the security requirements and business rules.
 - [ ] Record unresolved rules instead of inventing behavior.
@@ -38,7 +41,7 @@ Validate account creation, login, authentication before protected actions, role-
 
 | Requirement ID | Finding / question | Severity | Resolution / decision | Status |
 |---|---|---|---|---|
-|  |  |  |  | Open |
+| Role permissions (implementation addition) | The frozen SRS does not spell out the approval workflow for staff slot and inventory operations. | Medium | Staff proposals are visible to the requesting staff member and to administrators; only an administrator can decide. Authorization is enforced by protected API routes as well as the dashboard UI. | Implemented; test coverage added |
 
 ## Acceptance criteria
 - All assigned requirements have been checked against the validation checklist.
@@ -57,6 +60,7 @@ The source RE baseline lists FR-001 to FR-006 and FR-030 to FR-042, with BR-001 
 - Confirm whether notifications are included in the agreed scope.
 - Confirm the intended behavior when an account is deactivated or a session expires.
 - Confirm whether FR-028 and FR-039 are distinct: both currently describe inventory updates after allocation; preserve both IDs until the team decides how to handle the overlap.
+- Verify role authorization for approval listing, proposal submission and decisions against both the UI and direct API requests.
 
 ## Completion record
 **Validated by:** Vrushant K P  

@@ -5,6 +5,8 @@ import request from "supertest";
 const createAppointmentSlot = jest.fn();
 const getAvailableSlots = jest.fn();
 const getAllSlots = jest.fn();
+const deleteAppointmentSlot = jest.fn();
+const validateAppointmentSlotInput = jest.fn();
 const bookAppointment = jest.fn();
 const getDonorAppointments = jest.fn();
 const rescheduleDonorAppointment = jest.fn();
@@ -12,16 +14,22 @@ const cancelDonorAppointment = jest.fn();
 const getRegisteredDonors = jest.fn();
 const getRecentDonations = jest.fn();
 const recordCompletedDonation = jest.fn();
+const submitOperationProposal = jest.fn();
+const decideOperationApproval = jest.fn();
+const listOperationApprovals = jest.fn();
+class OperationApprovalError extends Error {}
 
-jest.unstable_mockModule("../../backend/src/services/appointment-slot.service.js", () => ({ createAppointmentSlot, getAvailableSlots, getAllSlots }));
+jest.unstable_mockModule("../../backend/src/services/appointment-slot.service.js", () => ({ createAppointmentSlot, getAvailableSlots, getAllSlots, deleteAppointmentSlot, validateAppointmentSlotInput }));
 jest.unstable_mockModule("../../backend/src/services/appointment.service.js", () => ({ bookAppointment, getDonorAppointments }));
 jest.unstable_mockModule("../../backend/src/services/appointment-management.service.js", () => ({ getDonorAppointments, rescheduleDonorAppointment, cancelDonorAppointment }));
 jest.unstable_mockModule("../../backend/src/services/donation.service.js", () => ({ getRegisteredDonors, getRecentDonations, recordCompletedDonation }));
+jest.unstable_mockModule("../../backend/src/services/operation-approval.service.js", () => ({ submitOperationProposal, decideOperationApproval, listOperationApprovals, OperationApprovalError }));
 
 const { appointmentSlotRouter } = await import("../../backend/src/routes/appointment-slot.routes.js");
 const { appointmentRouter } = await import("../../backend/src/routes/appointment.routes.js");
 const { appointmentManagementRouter } = await import("../../backend/src/routes/appointment-management.routes.js");
 const { donationRouter } = await import("../../backend/src/routes/donation.routes.js");
+const { operationApprovalRouter } = await import("../../backend/src/routes/operation-approval.routes.js");
 
 function createApp(user) {
   const app = express();
@@ -31,24 +39,54 @@ function createApp(user) {
   app.use("/api/v1/appointments", appointmentRouter);
   app.use("/api/v1/appointment-management", appointmentManagementRouter);
   app.use("/api/v1/donations", donationRouter);
+  app.use("/api/v1/operation-approvals", operationApprovalRouter);
   return app;
 }
 
 beforeEach(() => jest.clearAllMocks());
 
 describe("EPIC-02 Donation and Appointment Management component", () => {
-  test("staff can create slots and donors can view available slots", async () => {
-    createAppointmentSlot.mockResolvedValue({ id: "slot-1", maxCapacity: 10 });
+  test("staff slot creation is proposed for admin approval; donors can view available slots", async () => {
+    submitOperationProposal.mockResolvedValue({ id: "approval-1", status: "PENDING" });
     getAvailableSlots.mockResolvedValue([{ id: "slot-1", isAvailable: true }]);
 
     const staff = createApp({ id: "staff-1", role: "STAFF" });
     const created = await request(staff).post("/api/v1/appointment-slots").send({ date: "2027-01-02" });
     const available = await request(createApp({ id: "donor-1", role: "DONOR" })).get("/api/v1/appointment-slots");
 
-    expect(created.status).toBe(201);
+    expect(created.status).toBe(202);
+    expect(created.body.approval.status).toBe("PENDING");
     expect(available.status).toBe(200);
     expect(available.body.slots).toHaveLength(1);
-    expect(createAppointmentSlot).toHaveBeenCalledWith({ date: "2027-01-02" });
+    expect(submitOperationProposal).toHaveBeenCalledWith("staff-1", "CREATE_SLOT", { date: "2027-01-02" });
+    expect(createAppointmentSlot).not.toHaveBeenCalled();
+  });
+
+  test("admin can create or delete a slot directly and review staff proposals", async () => {
+    createAppointmentSlot.mockResolvedValue({ id: "slot-1", maxCapacity: 10 });
+    deleteAppointmentSlot.mockResolvedValue({ id: "slot-1" });
+    decideOperationApproval.mockResolvedValue({ id: "approval-1", status: "APPROVED" });
+    const admin = createApp({ id: "admin-1", role: "ADMIN" });
+
+    const created = await request(admin).post("/api/v1/appointment-slots").send({ date: "2027-01-02" });
+    const deleted = await request(admin).delete("/api/v1/appointment-slots/slot-1");
+    const reviewed = await request(admin).post("/api/v1/operation-approvals/approval-1/review").send({ decision: "APPROVE" });
+
+    expect(created.status).toBe(201);
+    expect(deleted.status).toBe(200);
+    expect(reviewed.status).toBe(200);
+    expect(decideOperationApproval).toHaveBeenCalledWith("approval-1", "admin-1", "APPROVE", "");
+  });
+
+  test("staff slot deletion is proposed and cannot be directly applied", async () => {
+    submitOperationProposal.mockResolvedValue({ id: "approval-delete", status: "PENDING" });
+    const response = await request(createApp({ id: "staff-1", role: "STAFF" }))
+      .delete("/api/v1/appointment-slots/slot-1");
+
+    expect(response.status).toBe(202);
+    expect(response.body.approval.status).toBe("PENDING");
+    expect(submitOperationProposal).toHaveBeenCalledWith("staff-1", "DELETE_SLOT", { slotId: "slot-1" });
+    expect(deleteAppointmentSlot).not.toHaveBeenCalled();
   });
 
   test("booking connects the donor session to the selected slot", async () => {

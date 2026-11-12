@@ -62,10 +62,10 @@ export function deriveStatus(units) {
  * @param {Object} input - Stock addition payload matching addStockSchema.
  * @returns {Promise<{bloodGroup: string, availableUnits: number, status: string}>} Updated inventory record.
  */
-export async function addStock(actorId, input) {
+export async function addStock(actorId, input, database = prisma) {
   const values = addStockSchema.parse(input);
 
-  return prisma.$transaction(async (tx) => {
+  const apply = async (tx) => {
     const row = await tx.inventory.upsert({
       where: { bloodGroup: values.bloodGroup },
       create: {
@@ -97,7 +97,12 @@ export async function addStock(actorId, input) {
       availableUnits: inventory.availableUnits,
       status: inventory.status,
     };
-  });
+  };
+  return database === prisma ? prisma.$transaction(apply) : apply(database);
+}
+
+export function validateStockAddition(input) {
+  return addStockSchema.parse(input);
 }
 
 /**
@@ -235,10 +240,10 @@ export async function allocateUnits(tx, { bloodGroup, units, actorId, referenceI
  * @returns {Promise<{bloodGroup: string, availableUnits: number, status: string}>} Updated inventory record.
  * @throws {InventoryError} 409 if attempting to remove more units than currently available.
  */
-export async function adjustStock(actorId, input) {
+export async function adjustStock(actorId, input, database = prisma) {
   const values = adjustStockSchema.parse(input);
 
-  return prisma.$transaction(async (tx) => {
+  const apply = async (tx) => {
     let row;
     if (values.delta > 0) {
       row = await tx.inventory.upsert({
@@ -278,5 +283,10 @@ export async function adjustStock(actorId, input) {
       availableUnits: inventory.availableUnits,
       status: inventory.status,
     };
-  });
+  };
+  return database === prisma ? prisma.$transaction(apply) : apply(database);
+}
+
+export function validateStockAdjustment(input) {
+  return adjustStockSchema.parse(input);
 }
