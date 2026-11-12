@@ -9,6 +9,8 @@ import { jest } from "@jest/globals";
 
 const findMany = jest.fn();
 const create = jest.fn();
+const findUnique = jest.fn();
+const deleteSlot = jest.fn();
 
 // Mock Prisma client singleton
 jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
@@ -16,18 +18,23 @@ jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
     appointmentSlot: {
       findMany,
       create,
+      findUnique,
+      delete: deleteSlot,
     },
   },
 }));
 
 const {
   createAppointmentSlot,
+  deleteAppointmentSlot,
   getAvailableSlots,
 } = await import("../../../backend/src/services/appointment-slot.service.js");
 
 beforeEach(() => {
   findMany.mockReset();
   create.mockReset();
+  findUnique.mockReset();
+  deleteSlot.mockReset();
 });
 
 describe("US-009 manage appointment slots", () => {
@@ -81,5 +88,21 @@ describe("US-009 manage appointment slots", () => {
         }),
       }),
     );
+  });
+
+  test("deletes an unused slot while preserving its returned record", async () => {
+    findUnique.mockResolvedValue({ id: "slot-empty", _count: { appointments: 0 } });
+    deleteSlot.mockResolvedValue({ id: "slot-empty" });
+    await expect(deleteAppointmentSlot("slot-empty")).resolves.toMatchObject({ id: "slot-empty" });
+    expect(deleteSlot).toHaveBeenCalledWith({ where: { id: "slot-empty" } });
+  });
+
+  test("does not delete a slot that has appointment history", async () => {
+    findUnique.mockResolvedValue({ id: "slot-booked", _count: { appointments: 1 } });
+    await expect(deleteAppointmentSlot("slot-booked")).rejects.toMatchObject({
+      status: 409,
+      message: "This slot has appointment records and cannot be deleted.",
+    });
+    expect(deleteSlot).not.toHaveBeenCalled();
   });
 });

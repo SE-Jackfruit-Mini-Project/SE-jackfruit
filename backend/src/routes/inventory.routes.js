@@ -7,6 +7,7 @@
 import { Router } from "express";
 import { requireAuth, requireRole } from "../middleware/auth.middleware.js";
 import { addStock, adjustStock, getAvailability } from "../services/inventory.service.js";
+import { submitOperationProposal } from "../services/operation-approval.service.js";
 
 export const inventoryRouter = Router();
 
@@ -26,6 +27,13 @@ export const inventoryRouter = Router();
  */
 inventoryRouter.post("/stock", requireAuth, requireRole("STAFF", "ADMIN"), async (request, response, next) => {
   try {
+    if (request.session.user.role === "STAFF") {
+      const approval = await submitOperationProposal(request.session.user.id, "ADD_STOCK", request.body);
+      return response.status(202).json({
+        message: "Stock addition proposal sent to an administrator for approval.",
+        approval,
+      });
+    }
     const inventory = await addStock(request.session.user.id, request.body);
     return response.status(201).json({
       message: "Blood units added to inventory.",
@@ -81,6 +89,16 @@ inventoryRouter.get(
  */
 inventoryRouter.patch("/:bloodGroup", requireAuth, requireRole("STAFF", "ADMIN"), async (request, response, next) => {
   try {
+    if (request.session.user.role === "STAFF") {
+      const approval = await submitOperationProposal(request.session.user.id, "ADJUST_STOCK", {
+        ...request.body,
+        bloodGroup: request.params.bloodGroup,
+      });
+      return response.status(202).json({
+        message: "Inventory adjustment proposal sent to an administrator for approval.",
+        approval,
+      });
+    }
     const inventory = await adjustStock(request.session.user.id, {
       ...request.body,
       bloodGroup: request.params.bloodGroup,

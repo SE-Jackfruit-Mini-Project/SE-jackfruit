@@ -32,7 +32,7 @@ function formatGroup(bloodGroup) {
  * @param {Function} [props.onChanged] - Callback executed when stock is successfully adjusted.
  * @returns {JSX.Element} Rendered inventory management interface.
  */
-export function ManageInventory({ refreshKey = 0, onChanged }) {
+export function ManageInventory({ refreshKey = 0, onChanged, userRole = "STAFF" }) {
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -121,11 +121,14 @@ export function ManageInventory({ refreshKey = 0, onChanged }) {
 
       setMessage({
         type: "success",
-        text: `${result.message} ${formatGroup(result.inventory.bloodGroup)} now has ${result.inventory.availableUnits} units.`,
+        text: userRole === "ADMIN"
+          ? `${result.message} ${formatGroup(result.inventory.bloodGroup)} now has ${result.inventory.availableUnits} units.`
+          : result.message,
       });
       setForm({ bloodGroup: "", delta: "", reason: "" });
       await fetchInventory();
-      onChanged?.();
+      if (userRole === "ADMIN") onChanged?.();
+      else window.dispatchEvent(new Event("operation-approval-changed"));
     } catch {
       setMessage({ type: "error", text: "Network error. Please try again." });
     } finally {
@@ -135,7 +138,7 @@ export function ManageInventory({ refreshKey = 0, onChanged }) {
 
   return (
     <section style={{ background: "#fff", padding: "24px", borderRadius: "16px", border: "1px solid #e7dcd3" }}>
-      <h3 style={{ margin: "0 0 4px", fontFamily: "Manrope, sans-serif", fontSize: "20px" }}>Manage Inventory Status</h3>
+      <h3 style={{ margin: "0 0 4px", fontFamily: "Manrope, sans-serif", fontSize: "20px" }}>{userRole === "ADMIN" ? "Manage Inventory Status" : "Suggest Inventory Adjustment"}</h3>
       <p style={{ margin: "0 0 16px", color: "#81716a", fontSize: "13px" }}>
         Correct stock for expired, damaged or miscounted units. The status updates from the quantity.
       </p>
@@ -234,7 +237,7 @@ export function ManageInventory({ refreshKey = 0, onChanged }) {
           </div>
           <div style={{ display: "flex", gap: "12px" }}>
             <button type="submit" disabled={submitting}>
-              {submitting ? "Saving…" : "Save adjustment"}
+            {submitting ? "Submitting…" : userRole === "ADMIN" ? "Save adjustment" : "Submit for Admin Approval"}
             </button>
             <button
               type="button"

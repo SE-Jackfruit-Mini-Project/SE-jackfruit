@@ -22,6 +22,7 @@ import { donationHistoryRouter } from "./routes/donation-history.routes.js";
 import { appointmentManagementRouter } from "./routes/appointment-management.routes.js";
 import { donorInformationRouter } from "./routes/donor-information.routes.js";
 import { adminRouter } from "./routes/admin.routes.js";
+import { operationApprovalRouter } from "./routes/operation-approval.routes.js";
 
 // Initialize PostgreSQL session storage adapter
 const PgStore = connectPgSimple(session);
@@ -72,6 +73,7 @@ app.use("/api/v1/donation-history", donationHistoryRouter);
 app.use("/api/v1/appointment-management", appointmentManagementRouter);
 app.use("/api/v1/donor-information", donorInformationRouter);
 app.use("/api/v1/admin", adminRouter);
+app.use("/api/v1/operation-approvals", operationApprovalRouter);
 
 // Centralized error-handling middleware
 app.use((error, _request, response, _next) => {

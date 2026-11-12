@@ -19,8 +19,8 @@ The user stories are implemented story by story. Supporting implementation tasks
 |---|---|
 | **Donor** | Maintain donor details, view eligibility guidance, book/manage appointments, and view personal donation history. |
 | **Hospital requester** | Submit blood requests for a hospital and track those requests. |
-| **Staff** | Manage donation slots and appointments, record completed donations, manage inventory, and review/allocate requests. |
-| **Admin** | Perform staff operations and manage user roles and account status. |
+| **Staff** | Manage donor appointments, record completed donations, and review/allocate hospital requests. Suggest appointment-slot creation/deletion, blood-unit additions, and inventory adjustments for admin approval. Staff can view their own proposal statuses. |
+| **Admin** | Review and approve or reject staff proposals for slot and inventory changes; make those changes directly when needed; manage user roles and account status. |
 
 The backend enforces role and ownership checks. Hiding an action in the UI is not the sole access control.
 
@@ -33,6 +33,10 @@ The backend enforces role and ownership checks. Hiding an action in the UI is no
 - Inventory tracks the eight ABO/Rh blood groups and logs additions, donations, allocations, and adjustments as inventory movements. Status is derived from quantity: `OUT_OF_STOCK` at zero, `LOW` at 1–5 units, and `AVAILABLE` above 5 units.
 - Hospital requests start as `PENDING`. Staff/admin review them; an approved request can be allocated once. Allocation reduces stock and records the movement together.
 - Cancelling an appointment retains it with `CANCELLED` status and releases its slot capacity.
+- Staff slot and inventory changes are proposals. A pending proposal has no effect on donor slot availability or blood availability; an administrator must approve it before it is applied. Rejection leaves operational data unchanged.
+- Administrators review pending staff proposals in the **Staff Change Approvals** dashboard section. Staff can view their own submitted proposals and their decision status.
+- Empty appointment slots can be deleted after admin approval. A slot with any appointment records cannot be deleted, so its history is retained. Administrators may create or delete eligible slots directly.
+- Approved stock additions and inventory adjustments update the inventory movement history with the approval. Approval and the operational change are applied transactionally, and a proposal cannot be applied twice.
 - Eligibility guidance is informational and does not provide a medical diagnosis or clinical approval.
 
 ## Technology
@@ -142,7 +146,7 @@ Run from the project root unless noted:
 | `npm run test:frontend` | Frontend Vitest tests, including `tests/unit-testing/frontend`. |
 | `npm --prefix frontend run build` | Creates the frontend production build in `frontend/dist`. |
 
-Backend and frontend dependencies must be installed first. Most automated tests use mocks or synthetic data; do not point test runs at a production database.
+Backend and frontend dependencies must be installed first. Most automated tests use mocks or synthetic data; do not point test runs at a production database. When the Prisma schema changes, regenerate Prisma Client and run `npm --prefix backend run db:push` against your local database before starting the application. Do not reset a database containing data you want to keep.
 
 ### CI
 
@@ -153,6 +157,7 @@ The GitHub Actions workflow at `.github/workflows/ci.yml` runs on pushes and pul
 ```text
 backend/                 Express API, Prisma schema, and backend package scripts
 frontend/                React/Vite application and frontend package scripts
+deviations.md            Implementation additions and deviations from the frozen SRS
 tests/
   unit-testing/          Backend and frontend unit suites
   component-testing/     Four epic-level backend component suites
