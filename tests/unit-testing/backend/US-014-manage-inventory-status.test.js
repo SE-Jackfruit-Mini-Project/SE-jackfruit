@@ -119,7 +119,7 @@ describe("PATCH /api/v1/inventory/:bloodGroup", () => {
     expect(response.status).toBe(200);
     expect(response.body.inventory).toEqual({ bloodGroup: "A_POSITIVE", availableUnits: 6, status: "AVAILABLE" });
     expect(movements).toEqual([
-      { inventoryId: "inv-A", type: "ADJUSTMENT", delta: -4, reason: "Expired units", actorId: "u-staff" },
+      { inventoryId: "inv-A", type: "ADJUSTMENT", delta: -4, reason: "Expired units", actorId: "u-admin" },
     ]);
   });
 
