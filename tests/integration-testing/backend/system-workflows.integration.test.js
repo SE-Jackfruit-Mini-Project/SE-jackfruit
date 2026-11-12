@@ -65,9 +65,9 @@ const prisma = {
       if (where.date?.gte) return slot.date >= where.date.gte && (!where.isAvailable || slot.isAvailable === where.isAvailable);
       return true;
     }),
-    findUnique: async ({ where, include }) => {
+    findUnique: async ({ where, include, select }) => {
       const slot = slots.get(where.id);
-      return slot && include?._count
+      return slot && (include?._count || select?._count)
         ? { ...slot, _count: { appointments: [...appointments.values()].filter((item) => item.slotId === slot.id).length } }
         : slot ?? null;
     },

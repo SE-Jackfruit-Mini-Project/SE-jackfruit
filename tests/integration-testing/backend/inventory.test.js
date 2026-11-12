@@ -15,6 +15,8 @@ import request from "supertest";
 // In-memory stand-in for the Prisma client used by the inventory service.
 const rows = new Map();
 const movements = [];
+const operationApprovals = new Map();
+let nextApprovalId = 0;
 const tx = {
   inventory: {
     upsert: async ({ where, create, update }) => {
@@ -39,6 +41,15 @@ const tx = {
       return data;
     },
   },
+  operationApproval: {
+    findUnique: async ({ where }) => operationApprovals.get(where.id) ?? null,
+    updateMany: async ({ where, data }) => {
+      const approval = operationApprovals.get(where.id);
+      if (!approval || approval.status !== where.status) return { count: 0 };
+      Object.assign(approval, data);
+      return { count: 1 };
+    },
+  },
 };
 
 let failReads = false;
@@ -46,6 +57,13 @@ let failReads = false;
 jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: {
     $transaction: async (callback) => callback(tx),
+    operationApproval: {
+      create: async ({ data }) => {
+        const approval = { id: `approval-${++nextApprovalId}`, status: "PENDING", ...data };
+        operationApprovals.set(approval.id, approval);
+        return { ...approval, requester: { id: data.requesterId, role: "STAFF" } };
+      },
+    },
     inventory: {
       findMany: async () => {
         if (failReads) throw new Error("database unavailable");
@@ -60,6 +78,7 @@ jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
 }));
 
 const { inventoryRouter } = await import("../../../backend/src/routes/inventory.routes.js");
+const { operationApprovalRouter } = await import("../../../backend/src/routes/operation-approval.routes.js");
 const { deriveStatus, LOW_STOCK_THRESHOLD } = await import("../../../backend/src/services/inventory.service.js");
 
 function appWithUser(user) {
@@ -70,16 +89,20 @@ function appWithUser(user) {
     next();
   });
   app.use("/api/v1/inventory", inventoryRouter);
+  app.use("/api/v1/operation-approvals", operationApprovalRouter);
   return app;
 }
 
 const staff = { id: "u-staff", role: "STAFF" };
+const admin = { id: "u-admin", role: "ADMIN" };
 const validEntry = { bloodGroup: "A_POSITIVE", units: 10, type: "PURCHASE" };
 
 beforeEach(() => {
   failReads = false;
   rows.clear();
   movements.length = 0;
+  operationApprovals.clear();
+  nextApprovalId = 0;
 });
 
 describe("deriveStatus", () => {
@@ -105,28 +128,33 @@ describe("POST /api/v1/inventory/stock", () => {
     expect(rows.size).toBe(0);
   });
 
-  test("staff can add a valid entry", async () => {
+  test("staff stock addition remains pending until admin approval", async () => {
     const response = await request(appWithUser(staff)).post("/api/v1/inventory/stock").send(validEntry);
-    expect(response.status).toBe(201);
-    expect(response.body.inventory).toEqual({
-      bloodGroup: "A_POSITIVE",
-      availableUnits: 10,
-      status: "AVAILABLE",
+    expect(response.status).toBe(202);
+    expect(response.body.approval.status).toBe("PENDING");
+    expect(rows.size).toBe(0);
+    expect(movements).toHaveLength(0);
+
+    const approved = await request(appWithUser(admin))
+      .post(`/api/v1/operation-approvals/${response.body.approval.id}/review`).send({ decision: "APPROVE" });
+    expect(approved.status).toBe(200);
+    expect(rows.get("A_POSITIVE")).toMatchObject({
+      bloodGroup: "A_POSITIVE", availableUnits: 10, status: "AVAILABLE",
     });
     expect(movements).toEqual([
-      { inventoryId: "inv-A_POSITIVE", type: "PURCHASE", delta: 10, reason: null, actorId: "u-staff" },
+      { inventoryId: "inv-A_POSITIVE", type: "PURCHASE", delta: 10, reason: null, actorId: "u-admin" },
     ]);
   });
 
   test("admin can add a valid entry", async () => {
-    const response = await request(appWithUser({ id: "u-admin", role: "ADMIN" }))
+    const response = await request(appWithUser(admin))
       .post("/api/v1/inventory/stock")
       .send(validEntry);
     expect(response.status).toBe(201);
   });
 
   test("adds to an existing quantity and updates status", async () => {
-    const app = appWithUser(staff);
+    const app = appWithUser(admin);
     await request(app).post("/api/v1/inventory/stock").send({ ...validEntry, units: 2 });
     const response = await request(app).post("/api/v1/inventory/stock").send({ ...validEntry, units: 8 });
     expect(response.body.inventory).toMatchObject({ availableUnits: 10, status: "AVAILABLE" });
@@ -134,7 +162,7 @@ describe("POST /api/v1/inventory/stock", () => {
   });
 
   test("reports LOW for a small quantity", async () => {
-    const response = await request(appWithUser(staff))
+    const response = await request(appWithUser(admin))
       .post("/api/v1/inventory/stock")
       .send({ ...validEntry, units: 3 });
     expect(response.body.inventory.status).toBe("LOW");

@@ -146,7 +146,7 @@ Run from the project root unless noted:
 | `npm run test:frontend` | Frontend Vitest tests, including `tests/unit-testing/frontend`. |
 | `npm --prefix frontend run build` | Creates the frontend production build in `frontend/dist`. |
 
-Backend and frontend dependencies must be installed first. Most automated tests use mocks or synthetic data; do not point test runs at a production database. When the Prisma schema changes, regenerate Prisma Client and run `npm --prefix backend run db:push` against your local database before starting the application. Do not reset a database containing data you want to keep.
+The epic component suites exercise the API routes and role-specific behavior with mocked services. They verify that staff slot and inventory changes remain pending proposals while administrators can apply changes or review proposals. The integration suite covers the end-to-end persistence and approval behavior. Backend and frontend dependencies must be installed first. Most automated tests use mocks or synthetic data; do not point test runs at a production database. When the Prisma schema changes, regenerate Prisma Client and run `npm --prefix backend run db:push` against your local database before starting the application. Do not reset a database containing data you want to keep.
 
 ### CI
 
