@@ -1,150 +1,177 @@
-# SE-jackfruit — Blood Donation Management System
-Software Engineering mini-project for the PES University JACKFRUIT Software Engineering Project.
-## Project Overview
-The Blood Donation Management System is a web application for managing donor information, donation appointments and records, blood inventory, blood requests, request decisions, allocation, and user access.
-## Team
-| Member | SRN | Functional Area |
-|---|---|---|
-| Tusti S | PES1UG24CS505 | Donor Management |
-| Pavithra Reddy | PES1UG24CS489 | Donation & Appointment Management |
-| Vedanth Kiran | PES1UG24CS523 | Blood Inventory & Availability |
-| Vrushant K P | PES1UG24CS542 | Blood Requests & Administration |
-All members participate in requirements, design, implementation, testing, reviews, and documentation. Functional areas indicate coordination ownership, not exclusive responsibility.
-## System Scope
-The system supports:
-- User registration, login, logout, and role-based access control
-- Donor registration, profiles, eligibility information, and donation history
-- Donation appointment booking, viewing, rescheduling, and cancellation
-- Staff management of appointments and completed donation records
-- Blood inventory maintenance and availability lookup
-- Blood request submission and status tracking
-- Authorized request review, approval/rejection, and allocation
-- Administrator management of users, roles, and account status
-Out of scope: medical diagnosis or treatment recommendations, laboratory testing, physical blood collection or transportation, payments, emergency medical decisions, and external hospital/government integrations.
-## Project Methodology
-The project follows **Agile methodology** with weekly Scrum-style implementation sprints.
-```text
-Requirements → SRS → Architecture & Design → Backlog Refinement
-      → Implementation → Automated & Manual Testing
-      → Integration & Regression Testing → Demo & Final Documentation
-```
-The team uses a planning and requirements phase before implementation. The university implementation schedule remains:
-- **Implementation Sprint 1:** 19–23 October 2026
-- **Implementation Sprint 2:** 26–30 October 2026
-## Project Documents
-The Version 1 baseline documents are:
-- **SRS Version 1.0** — functional and non-functional requirements, business rules, security requirements, acceptance criteria, and requirements traceability.
-- **Software Architecture and Design Specification (SAD) Version 1.0** — layered architecture, technology stack, component descriptions, UML sequence diagrams, planned REST API contracts, security architecture, and design decisions.
-- **Software Test Plan Version 2.0** — test strategy, environment, responsibilities, schedule, risks, traceability, and planned test cases TC-001–TC-040.
-The Test Plan Version 2.0 is aligned with SRS Version 1.0 and SAD Version 1.0. Test cases are a plan; do not describe them as passed until they have actually been executed and evidence has been recorded.
-## Planned Technology Stack
-The project design selects the following stack:
-| Area | Technology | Purpose |
-|---|---|---|
-| Frontend | React.js with Vite | Web user interface |
-| Backend | Node.js with Express.js | Server-side logic and REST APIs |
-| Database | PostgreSQL | Persistent relational data |
-| Database access | Prisma ORM | Schema, migrations, and database queries |
-| Password security | bcrypt | Password hashing |
-| Session handling | Secure HTTP-only cookies | Authenticated sessions |
-| Frontend testing | Vitest and React Testing Library | Unit and component tests |
-| Backend/API testing | Jest and Supertest | Unit and API integration tests |
-| Manual API checks | Postman | Request/response verification |
-| Version control and CI | Git, GitHub, GitHub Actions | Collaboration, review, and automated checks |
-| Design documentation | PlantUML and Draw.io (diagrams.net) | UML and architecture diagrams |
-The application will use HTTPS for deployed authenticated communication. Configuration and secrets must not be committed to the repository. Use synthetic test data; do not use real personal or medical data in tests.
-## Architecture Overview
-The planned architecture is a **modular layered web architecture**:
-1. **Presentation layer:** React web UI.
-2. **Application/service layer:** Express routes, authentication and authorization middleware, and functional modules for donor management, appointments/donations, inventory/availability, blood requests, and administration.
-3. **Persistence layer:** Prisma ORM and PostgreSQL.
-The initial version uses one application deployment and a shared relational database. Inventory changes associated with accepted donations and approved request allocations must be handled consistently, using database transactions where required. Authorization must be enforced by the backend, not only by hiding frontend controls.
-## Planned API Areas
-REST API endpoints use the `/api/v1` prefix. The detailed contracts are documented in SAD Version 1.0, Section 4.3.
-- **Authentication and administration:** registration, login, current-user details, logout, user listing, role updates, and account activation/deactivation.
-- **Donor management:** donor profile creation/view/update and donation history.
-- **Appointments and donations:** booking, viewing, rescheduling, cancellation, staff management, and completed donation recording.
-- **Inventory and availability:** inventory lookup, availability checks, authorized adjustments, and inventory transaction history.
-- **Blood requests and allocation:** request submission, requester-owned request tracking, staff review, approval/rejection, and allocation of approved requests.
-All protected operations must validate input, authenticate the session, enforce role/ownership permissions, and return safe error responses.
-## Requirements and Test Case IDs
-Keep approved identifiers stable and use them for traceability across requirements, design, implementation, and tests.
-| Prefix | Meaning |
+# SE-Jackfruit: Blood Donation Management System
+
+A Software Engineering mini-project built by the JACKFRUIT team. The application supports donor registration and profiles, appointment booking and management, donation records, blood inventory, hospital blood requests, and role-based access.
+
+## Current project status
+
+The application covers 17 user stories across four epics:
+
+1. **Donor Management** — donor registration, login, profile, eligibility information, donor lookup, donation history, and user access administration.
+2. **Donation and Appointment Management** — appointment slot management, booking, rescheduling and cancellation, and recording completed donations.
+3. **Blood Inventory and Availability** — stock updates, status management, and blood group availability.
+4. **Blood Requests and Administration** — hospital requester submissions, staff review, and allocation of approved requests.
+
+The user stories are implemented story by story. Supporting implementation tasks are tracked under their stories; they are not treated as separate delivery units.
+
+## Roles
+
+| Role | Main responsibilities |
 |---|---|
-| `FR-###` | Functional Requirement |
-| `NFR-###` | Non-Functional Requirement |
-| `BR-###` | Business Rule |
-| `SR-###` | Security Requirement |
-| `SO-###` | Security Objective |
-| `AC-###` | Acceptance Criterion |
-| `TC-###` | Test Case |
-Use `TBD` only where the approved requirements documents explicitly leave a value unresolved. In SRS Version 1.0, the numeric response-time and concurrent-user targets in **NFR-001** and **NFR-002** remain TBD; do not invent acceptance thresholds.
-## GitHub Workflow
-The project uses GitHub for issues, pull requests, code review, and project coordination.
-```text
-Epic → User Story → Task → Code/Documentation → Pull Request → Review → Merge
+| **Donor** | Maintain donor details, view eligibility guidance, book/manage appointments, and view personal donation history. |
+| **Hospital requester** | Submit blood requests for a hospital and track those requests. |
+| **Staff** | Manage donation slots and appointments, record completed donations, manage inventory, and review/allocate requests. |
+| **Admin** | Perform staff operations and manage user roles and account status. |
+
+The backend enforces role and ownership checks. Hiding an action in the UI is not the sole access control.
+
+## Implemented business rules
+
+- Donor age is calculated from date of birth; age is not stored as a separate donor field. Donor date of birth, gender, and blood group are stored on the donor profile. These attributes can be null for non-donor accounts.
+- A donor must be **18–65 years old (inclusive)** and weigh at least **45 kg** when booking. Weight is captured for each booking.
+- The donation interval is calculated from the date of the donor's latest **accepted, completed donation**, not from an appointment booking. The configured interval is four calendar months for female donors and three for male donors. A booking or cancellation alone does not start this interval.
+- Completed donation records are retained. An accepted donation adds units to inventory using the donor's saved blood group; a rejected donation does not add stock.
+- Inventory tracks the eight ABO/Rh blood groups and logs additions, donations, allocations, and adjustments as inventory movements. Status is derived from quantity: `OUT_OF_STOCK` at zero, `LOW` at 1–5 units, and `AVAILABLE` above 5 units.
+- Hospital requests start as `PENDING`. Staff/admin review them; an approved request can be allocated once. Allocation reduces stock and records the movement together.
+- Cancelling an appointment retains it with `CANCELLED` status and releases its slot capacity.
+- Eligibility guidance is informational and does not provide a medical diagnosis or clinical approval.
+
+## Technology
+
+| Part | Technology |
+|---|---|
+| Frontend | React, Vite, React Router |
+| Backend | Node.js, Express, REST API |
+| Database | PostgreSQL, Prisma ORM |
+| Authentication | Server-side sessions stored in PostgreSQL; `bcryptjs` password hashing |
+| Input validation | Zod |
+| Backend tests | Jest and Supertest |
+| Frontend tests | Vitest |
+| CI | GitHub Actions; SonarCloud may run when configured for a pull request |
+
+## Prerequisites
+
+- **Node.js 22 LTS** (npm is included). Node 20 or newer may work locally; CI uses Node 22.
+- **PostgreSQL** running on the development computer, normally on port `5432`.
+- Git, to clone the project and use its branch/pull request workflow.
+
+The backend and frontend run locally. Each developer configures their own local database; it is not a shared team database. Data created in one developer's local database does not automatically appear in another developer's database.
+
+## Local setup
+
+### 1. Clone and enter the project
+
+```powershell
+git clone https://github.com/SE-Jackfruit-Mini-Project/SE-jackfruit.git
+cd SE-jackfruit
 ```
-- Keep `main` as the stable, reviewed branch.
-- Do not develop directly on `main`.
-- Each completed work item should be submitted through a pull request.
-- The PR author must not approve their own PR.
-- Address review feedback before merging.
-- **Only Tusti (Team Lead) merges pull requests into `main`.**
-- Link each pull request to the relevant GitHub issue.
-### Branch Naming
-Use this convention:
-```text
-sprint<no>/<member-name>-<short-description>
+
+If you already have the project, open a terminal at its root directory.
+
+### 2. Create a local PostgreSQL database
+
+Start the PostgreSQL service and create an empty database in pgAdmin or with `createdb`. Choose any database name you like, then use that same name in `DATABASE_URL` below. Ensure the PostgreSQL username and password are correct for your local server.
+
+### 3. Configure backend environment variables
+
+From the project root, copy the example environment file and edit `backend/.env`:
+
+```powershell
+Copy-Item backend/.env.example backend/.env
 ```
-Examples:
-```text
-sprint1/tusti-requirements
-sprint1/pavithra-requirements
-sprint1/vedanth-requirements
-sprint1/vrushant-requirements
+
+Set values similar to these, replacing the password and database name with your own:
+
+```dotenv
+DATABASE_URL="postgresql://postgres:YOUR_POSTGRES_PASSWORD@localhost:5432/YOUR_DATABASE_NAME?schema=public"
+PORT=3000
+SESSION_SECRET="a-long-random-secret-for-local-development"
 ```
-Use lowercase, hyphens, and concise descriptions.
-### Commit Messages
-Use a Conventional Commit-style format:
-```text
-<type>: <short description>
+
+The `SESSION_SECRET` is a random value you create for this local installation. Do not reuse a production secret or commit `backend/.env`. The database URL points Prisma to the local PostgreSQL server and database.
+
+### 4. Install dependencies and prepare the Prisma client
+
+Run these commands from the **project root**:
+
+```powershell
+npm --prefix backend install
+npm --prefix frontend install
+npm --prefix backend run db:generate
 ```
-Examples:
-```text
-docs: update software test plan
-feat: implement donor registration
-fix: validate donor contact number
-test: add inventory allocation tests
+
+Apply the Prisma schema to the local database:
+
+```powershell
+npm --prefix backend run db:push
 ```
-Keep commits focused and meaningful.
-### Pull Request Titles
-Use:
-```text
-<ISSUE-ID>: <short description>
+
+`db:push` synchronizes the database schema with the Prisma schema. If Prisma reports that a change could delete data, stop and review the message; do not reset a database containing data you want to keep. The project also defines `db:migrate` for Prisma migration development, but if migration history and a local database drift, resolve that intentionally rather than accepting a reset prompt.
+
+## Run the application
+
+Open two PowerShell terminals at the project root.
+
+**Terminal 1 — backend API:**
+
+```powershell
+cd backend
+npm run dev
 ```
-Example:
-```text
-US-001: Implement donor registration
+
+The API listens at `http://localhost:3000`. Its health endpoint is `http://localhost:3000/api/v1/health`.
+
+**Terminal 2 — frontend:**
+
+```powershell
+cd frontend
+npm run dev
 ```
-Use the actual issue identifier associated with the work item.
-## Suggested Documentation Layout
-Keep project documents organized in the repository. The team may adjust the exact filenames while preserving a clear structure.
+
+Open the Vite URL printed in the terminal, usually **http://localhost:5173**. The frontend proxies `/api` requests to the backend on port 3000. Stop either development server with `Ctrl+C` in its terminal.
+
+## Test and build commands
+
+Run from the project root unless noted:
+
+| Command | What it runs |
+|---|---|
+| `npm test` | Backend unit tests, epic component tests, backend integration tests, then frontend unit tests. |
+| `npm run test:backend` | Backend unit tests in `tests/unit-testing/backend`. |
+| `npm run test:component` | Four epic-level backend component suites in `tests/component-testing`. |
+| `npm run test:integration` | Backend integration/system suites in `tests/integration-testing/backend`. |
+| `npm run test:frontend` | Frontend Vitest tests, including `tests/unit-testing/frontend`. |
+| `npm --prefix frontend run build` | Creates the frontend production build in `frontend/dist`. |
+
+Backend and frontend dependencies must be installed first. Most automated tests use mocks or synthetic data; do not point test runs at a production database.
+
+### CI
+
+The GitHub Actions workflow at `.github/workflows/ci.yml` runs on pushes and pull requests targeting `main`. It installs backend and frontend dependencies, runs backend unit, component, and integration tests, then runs frontend tests and a production build. SonarCloud is an additional check only when its repository integration and workflow configuration are active.
+
+## Repository layout
+
 ```text
-docs/
-├── requirements/
-├── srs/
-├── architecture/
-├── design/
-├── validation/
-├── tests/
-└── reviews/
+backend/                 Express API, Prisma schema, and backend package scripts
+frontend/                React/Vite application and frontend package scripts
+tests/
+  unit-testing/          Backend and frontend unit suites
+  component-testing/     Four epic-level backend component suites
+  integration-testing/  Backend workflow and inventory integration suites
+.github/workflows/       GitHub Actions CI configuration
 ```
-Store the SRS, SAD, Test Plan, test evidence, review notes, and approved changes in the relevant folders. Keep the documents synchronized when an approved requirement, API contract, architecture decision, or test case changes.
-## Current Planning Baseline
-The current documentation baseline is:
-- SRS Version 1.0
-- SAD Version 1.0
-- Software Test Plan Version 2.0
-The project team should implement and verify the system against these documents. If a requirement or design decision changes, review the impact, update the relevant documents and traceability, and communicate the change through the GitHub workflow.
-## Scope Limitations
-The system is a software workflow prototype. It does not perform clinical eligibility decisions, laboratory testing, physical blood collection, storage, or transportation, and it does not integrate with external hospital or government systems in the current scope.
+
+The SRS, SAD, and Test Plan submission copies are maintained separately from this repository. Keep them synchronized with approved changes to requirements, implementation, and tests.
+
+## Development workflow
+
+1. Start from an up-to-date `main` branch and create a separate feature branch for each user story, for example `feature/US-001-donor-registration`.
+2. Implement the story and update relevant tests and documentation.
+3. Run the appropriate local checks, then open a pull request to `main` and link the related issue.
+4. Resolve review feedback and required CI checks. Do not commit secrets, local `.env` files, database dumps, or generated `node_modules`/build output.
+
+## Security and scope notes
+
+- Keep database credentials and session secrets out of Git. `backend/.env` is ignored; share only safe configuration instructions, never actual credentials.
+- Use synthetic data in development and testing.
+- This project coordinates software workflows; it does not provide clinical eligibility decisions, diagnose or treat patients, conduct laboratory tests, or manage physical collection, storage, or transport of blood.
+- External hospital and government integrations and shared hosted production infrastructure are outside the current local-development setup.
