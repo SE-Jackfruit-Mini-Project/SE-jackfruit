@@ -240,7 +240,7 @@ export function BookAppointment({ donor }) {
           <p style={{ color: "#81716a", fontSize: "14px" }}>Loading available slots...</p>
         ) : slots.length === 0 ? (
           <p style={{ color: "#81716a", fontSize: "14px" }}>
-            No donation slots are currently available. Please check back later or contact staff.
+            No upcoming donation slots are currently available. Please check back later or contact staff.
           </p>
         ) : (
           <div style={{ display: "grid", gap: "12px" }}>

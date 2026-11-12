@@ -98,6 +98,15 @@ export async function bookAppointment(donorId, input) {
     throw error;
   }
 
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const currentTime = now.toISOString().slice(11, 16);
+  if (slot.date < today || (slot.date === today && slot.startTime <= currentTime)) {
+    const error = new Error("This appointment slot has already started or passed. Please choose an upcoming slot.");
+    error.status = 400;
+    throw error;
+  }
+
   // 2. Validate availability and capacity (AC-5)
   if (!slot.isAvailable || slot.bookedCount >= slot.maxCapacity) {
     const error = new Error("This appointment slot is full or no longer available.");
