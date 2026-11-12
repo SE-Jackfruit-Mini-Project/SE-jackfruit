@@ -16,6 +16,7 @@ import request from "supertest";
 // In-memory stand-in for the Prisma client; a failed transaction is rolled back.
 let rows = new Map();
 let movements = [];
+const proposalCreate = jest.fn();
 
 const tx = {
   inventory: {
@@ -52,6 +53,7 @@ const tx = {
 
 jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: {
+    operationApproval: { create: proposalCreate },
     $transaction: async (callback) => {
       const snapshot = new Map([...rows].map(([key, row]) => [key, { ...row }]));
       const movementCount = movements.length;
@@ -80,11 +82,13 @@ function appWithUser(user) {
 }
 
 const staff = { id: "u-staff", role: "STAFF" };
+const admin = { id: "u-admin", role: "ADMIN" };
 const patch = (user, group, body) => request(appWithUser(user)).patch(`/api/v1/inventory/${group}`).send(body);
 
 beforeEach(() => {
   rows = new Map([["A_POSITIVE", { id: "inv-A", bloodGroup: "A_POSITIVE", availableUnits: 10, status: "AVAILABLE" }]]);
   movements = [];
+  proposalCreate.mockReset();
 });
 
 describe("PATCH /api/v1/inventory/:bloodGroup", () => {
@@ -98,8 +102,20 @@ describe("PATCH /api/v1/inventory/:bloodGroup", () => {
     expect(rows.get("A_POSITIVE").availableUnits).toBe(10);
   });
 
-  test("removing units lowers the quantity and records a movement", async () => {
+  test("staff adjustment remains pending and does not change inventory until approval", async () => {
+    proposalCreate.mockResolvedValue({ id: "approval-1", status: "PENDING" });
     const response = await patch(staff, "A_POSITIVE", { delta: -4, reason: "Expired units" });
+    expect(response.status).toBe(202);
+    expect(response.body.approval.status).toBe("PENDING");
+    expect(proposalCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ action: "ADJUST_STOCK", requesterId: staff.id }),
+    }));
+    expect(rows.get("A_POSITIVE").availableUnits).toBe(10);
+    expect(movements).toHaveLength(0);
+  });
+
+  test("removing units lowers the quantity and records a movement", async () => {
+    const response = await patch(admin, "A_POSITIVE", { delta: -4, reason: "Expired units" });
     expect(response.status).toBe(200);
     expect(response.body.inventory).toEqual({ bloodGroup: "A_POSITIVE", availableUnits: 6, status: "AVAILABLE" });
     expect(movements).toEqual([
@@ -108,28 +124,28 @@ describe("PATCH /api/v1/inventory/:bloodGroup", () => {
   });
 
   test("status follows the quantity down to LOW and OUT_OF_STOCK", async () => {
-    const low = await patch(staff, "A_POSITIVE", { delta: -7, reason: "Damaged in storage" });
+    const low = await patch(admin, "A_POSITIVE", { delta: -7, reason: "Damaged in storage" });
     expect(low.body.inventory).toMatchObject({ availableUnits: 3, status: "LOW" });
-    const out = await patch(staff, "A_POSITIVE", { delta: -3, reason: "Damaged in storage" });
+    const out = await patch(admin, "A_POSITIVE", { delta: -3, reason: "Damaged in storage" });
     expect(out.body.inventory).toMatchObject({ availableUnits: 0, status: "OUT_OF_STOCK" });
   });
 
   test("a positive correction raises the quantity and status", async () => {
     rows.get("A_POSITIVE").availableUnits = 0;
     rows.get("A_POSITIVE").status = "OUT_OF_STOCK";
-    const response = await patch(staff, "A_POSITIVE", { delta: 20, reason: "Recount found extra units" });
+    const response = await patch(admin, "A_POSITIVE", { delta: 20, reason: "Recount found extra units" });
     expect(response.body.inventory).toMatchObject({ availableUnits: 20, status: "AVAILABLE" });
   });
 
   test("cannot remove more than is in stock (409) and changes nothing", async () => {
-    const response = await patch(staff, "A_POSITIVE", { delta: -11, reason: "Expired units" });
+    const response = await patch(admin, "A_POSITIVE", { delta: -11, reason: "Expired units" });
     expect(response.status).toBe(409);
     expect(rows.get("A_POSITIVE").availableUnits).toBe(10);
     expect(movements).toHaveLength(0);
   });
 
   test("cannot remove units from a group with no inventory row (409)", async () => {
-    const response = await patch(staff, "O_NEGATIVE", { delta: -1, reason: "Expired units" });
+    const response = await patch(admin, "O_NEGATIVE", { delta: -1, reason: "Expired units" });
     expect(response.status).toBe(409);
   });
 
@@ -142,7 +158,7 @@ describe("PATCH /api/v1/inventory/:bloodGroup", () => {
     ["missing reason", "A_POSITIVE", { delta: -1 }, "reason"],
     ["blank reason", "A_POSITIVE", { delta: -1, reason: "  " }, "reason"],
   ])("rejects %s with 400", async (_name, group, body, field) => {
-    const response = await patch(staff, group, body);
+    const response = await patch(admin, group, body);
     expect(response.status).toBe(400);
     expect(response.body.errors.map((e) => e.field)).toContain(field);
     expect(rows.get("A_POSITIVE").availableUnits).toBe(10);
@@ -150,7 +166,7 @@ describe("PATCH /api/v1/inventory/:bloodGroup", () => {
   });
 
   test("simultaneous removals never drive stock negative", async () => {
-    const app = appWithUser(staff);
+    const app = appWithUser(admin);
     const send = () => request(app).patch("/api/v1/inventory/A_POSITIVE").send({ delta: -6, reason: "Expired units" });
     const results = await Promise.all([send(), send()]);
     expect(results.map((r) => r.status).sort()).toEqual([200, 409]);

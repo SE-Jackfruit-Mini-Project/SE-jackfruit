@@ -14,11 +14,12 @@ import { useState, useEffect } from "react";
  * @component
  * @returns {JSX.Element} Rendered slot creation form and existing slot overview.
  */
-export function ManageSlots() {
+export function ManageSlots({ userRole = "STAFF", refreshKey = 0 }) {
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
+  const [deletingSlotId, setDeletingSlotId] = useState(null);
 
   const todayString = new Date().toISOString().slice(0, 10);
 
@@ -31,7 +32,7 @@ export function ManageSlots() {
 
   useEffect(() => {
     void fetchSlots();
-  }, []);
+  }, [refreshKey]);
 
   /**
    * Fetches all scheduled appointment slots from backend.
@@ -100,6 +101,7 @@ export function ManageSlots() {
       }
 
       setMessage({ type: "success", text: result.message || "Slot created successfully!" });
+      if (userRole === "STAFF") window.dispatchEvent(new Event("operation-approval-changed"));
       setFormData({
         date: todayString,
         startTime: "09:00",
@@ -255,7 +257,7 @@ export function ManageSlots() {
                 opacity: submitting ? 0.7 : 1,
               }}
             >
-              {submitting ? "Creating Slot..." : "Create Appointment Slot"}
+              {submitting ? "Submitting..." : userRole === "ADMIN" ? "Create Appointment Slot" : "Suggest Appointment Slot"}
             </button>
           </div>
         </form>
@@ -294,6 +296,7 @@ export function ManageSlots() {
                   <th style={{ padding: "10px 12px" }}>Time Window</th>
                   <th style={{ padding: "10px 12px" }}>Booked / Capacity</th>
                   <th style={{ padding: "10px 12px" }}>Status</th>
+                  <th style={{ padding: "10px 12px" }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -314,6 +317,33 @@ export function ManageSlots() {
                       <td style={{ padding: "12px", fontWeight: 600 }}>{slot.date}</td>
                       <td style={{ padding: "12px" }}>
                         {slot.startTime} – {slot.endTime}
+                      </td>
+                      <td style={{ padding: "12px" }}>
+                        <button
+                          type="button"
+                          disabled={deletingSlotId === slot.id}
+                          onClick={async () => {
+                            setDeletingSlotId(slot.id);
+                            setMessage(null);
+                            try {
+                              const response = await fetch(`/api/v1/appointment-slots/${slot.id}`, {
+                                method: "DELETE",
+                                credentials: "include",
+                              });
+                              const result = await response.json();
+                              setMessage({ type: response.ok ? "success" : "error", text: result.message || "Could not delete slot." });
+                              if (response.ok && userRole === "STAFF") window.dispatchEvent(new Event("operation-approval-changed"));
+                              if (response.ok && userRole === "ADMIN") await fetchSlots();
+                            } catch {
+                              setMessage({ type: "error", text: "Network error. Please try again." });
+                            } finally {
+                              setDeletingSlotId(null);
+                            }
+                          }}
+                          style={{ padding: "7px 12px", minHeight: "auto", background: "#f3ebe4", color: "#862f2b" }}
+                        >
+                          {deletingSlotId === slot.id ? "Submitting…" : userRole === "ADMIN" ? "Delete" : "Suggest deletion"}
+                        </button>
                       </td>
                       <td style={{ padding: "12px" }}>
                         {slot.bookedCount} / {slot.maxCapacity}

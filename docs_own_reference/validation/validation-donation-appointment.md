@@ -11,7 +11,7 @@ Validate the proposed Donation and Appointment Management requirements before th
 
 ## Scope
 
-Validate appointment booking, viewing, rescheduling, and cancellation; staff appointment management; recording completed donations; linking donations to donors; recording donation details; and updating inventory when a donation is accepted into inventory.
+Validate appointment booking, viewing, rescheduling, and cancellation; staff appointment management; administrator approval of staff slot creation/deletion proposals; recording completed donations; linking donations to donors; recording donation details; and updating inventory when a donation is accepted into inventory.
 
 ## Validation checklist
 
@@ -19,6 +19,9 @@ Validate appointment booking, viewing, rescheduling, and cancellation; staff app
 - [ ] Confirm appointment viewing is restricted to the appropriate user roles and records.
 - [ ] Confirm rescheduling and cancellation conditions are defined.
 - [ ] Confirm staff appointment-management permissions are clear.
+- [ ] Confirm staff slot creation and deletion proposals remain pending until approved by an administrator.
+- [ ] Confirm only administrators can review those proposals, and staff cannot apply slot changes through direct API requests.
+- [ ] Confirm a slot with appointment records cannot be deleted, preserving booking and donation history.
 - [ ] Confirm only authorized staff can record a completed donation.
 - [ ] Confirm each completed donation is associated with the correct donor.
 - [ ] Confirm required donation information is defined.
@@ -54,6 +57,7 @@ This checklist is a validation plan, not a completed validation report.
 | FR-019–FR-021 | Required donation fields and donation acceptance criteria need clarification. | To be assessed | Team decision required | Open |
 | FR-012, FR-020 | Both requirements address completed-donation records associated with donors; their relationship should be reviewed. | To be assessed | Team review | Open |
 | FR-022–FR-023 | Accepted donations and other stock additions must not be counted twice. | To be assessed | Merged inventory requirements distinguish the two cases. | Checked |
+| Slot management (implementation addition) | The original requirement baseline did not define an approval step for staff slot changes or a slot-deletion rule. | Medium | Staff create/delete actions are recorded as proposals; an administrator must approve before the change is applied. Deletion is allowed only when the slot has no appointment records. This supplements the frozen SRS and does not change its text. | Implemented; test coverage added |
 
 ## Acceptance criteria
 
@@ -69,6 +73,7 @@ This checklist is a validation plan, not a completed validation report.
 - Confirm permitted rescheduling and cancellation conditions.
 - Confirm the required donation record fields.
 - Confirm who records acceptance of a donation into inventory and under what conditions.
+- Confirm the implemented admin-review workflow remains consistent with the team's role policy; slot history is retained by preventing deletion when appointment records exist.
 - Review the relationship between FR-012 and FR-020 to confirm consistent handling of completed-donation records.
 
 ## Completion record

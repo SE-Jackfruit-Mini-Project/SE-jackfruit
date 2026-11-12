@@ -62,6 +62,8 @@ model User {
   appointments       Appointment[]
   donationsAsDonor   Donation[]          @relation("DonationDonor")
   donationsRecorded  Donation[]          @relation("DonationRecorder")
+  operationProposals OperationApproval[] @relation("OperationRequester")
+  operationReviews   OperationApproval[] @relation("OperationReviewer")
 
   @@map("users")
 }
@@ -98,6 +100,19 @@ enum InventoryMovementType {
   ALLOCATION
 }
 
+enum OperationApprovalAction {
+  CREATE_SLOT
+  DELETE_SLOT
+  ADD_STOCK
+  ADJUST_STOCK
+}
+
+enum OperationApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 /// Aggregated inventory stock level per blood group.
 // Status is derived from availableUnits in the service layer;
 // the CHECK (available_units >= 0) constraint is added in the migration.
@@ -128,6 +143,25 @@ model InventoryMovement {
 
   @@index([inventoryId, createdAt])
   @@map("inventory_movements")
+}
+
+/// Staff proposals for operational changes that require administrator review.
+model OperationApproval {
+  id           String                  @id @default(cuid())
+  action       OperationApprovalAction
+  status       OperationApprovalStatus @default(PENDING)
+  payload      Json
+  requesterId  String                  @map("requester_id")
+  requester    User                    @relation("OperationRequester", fields: [requesterId], references: [id])
+  reviewerId   String?                 @map("reviewer_id")
+  reviewer     User?                   @relation("OperationReviewer", fields: [reviewerId], references: [id])
+  decisionNote String?                 @map("decision_note") @db.VarChar(200)
+  createdAt    DateTime                @default(now()) @map("created_at")
+  reviewedAt   DateTime?               @map("reviewed_at")
+
+  @@index([status, createdAt])
+  @@index([requesterId, createdAt])
+  @@map("operation_approvals")
 }
 
 /// HTTP session storage table managed by connect-pg-simple.

@@ -13,11 +13,13 @@ const upsert = jest.fn();
 const update = jest.fn();
 const movementCreate = jest.fn();
 const transaction = jest.fn();
+const proposalCreate = jest.fn();
 
 // Mock Prisma client singleton
 jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: {
     $transaction: transaction,
+    operationApproval: { create: proposalCreate },
   },
 }));
 
@@ -47,6 +49,7 @@ beforeEach(() => {
   update.mockReset();
   movementCreate.mockReset();
   transaction.mockReset();
+  proposalCreate.mockReset();
   transaction.mockImplementation(async (callback) =>
     callback({
       inventory: { upsert, update },
@@ -118,11 +121,11 @@ describe("US-005 stock entry endpoint", () => {
     expect(transaction).not.toHaveBeenCalled();
   });
 
-  test.each(["STAFF", "ADMIN"])("allows %s to add stock and records a movement", async (role) => {
+  test("admin can add stock directly and records a movement", async () => {
     upsert.mockResolvedValue({ id: "inventory-1", bloodGroup: "A_POSITIVE", availableUnits: 10, status: "AVAILABLE" });
     movementCreate.mockResolvedValue({ id: "movement-1" });
 
-    const response = await postStock({ id: "actor-1", role });
+    const response = await postStock({ id: "actor-1", role: "ADMIN" });
     expect(response.status).toBe(201);
     expect(response.body.inventory).toEqual({ bloodGroup: "A_POSITIVE", availableUnits: 10, status: "AVAILABLE" });
     expect(movementCreate).toHaveBeenCalledWith({
@@ -130,9 +133,21 @@ describe("US-005 stock entry endpoint", () => {
     });
   });
 
+  test("staff stock additions remain pending until an admin approves", async () => {
+    proposalCreate.mockResolvedValue({ id: "approval-1", status: "PENDING" });
+    const response = await postStock({ id: "staff-1", role: "STAFF" });
+    expect(response.status).toBe(202);
+    expect(response.body.approval.status).toBe("PENDING");
+    expect(proposalCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ action: "ADD_STOCK", requesterId: "staff-1" }),
+    }));
+    expect(transaction).not.toHaveBeenCalled();
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
   test("reports low stock for a small addition", async () => {
     upsert.mockResolvedValue({ id: "inventory-1", bloodGroup: "A_POSITIVE", availableUnits: 3, status: "LOW" });
-    const response = await postStock({ id: "staff-1", role: "STAFF" }, { ...stockEntry, units: 3 });
+    const response = await postStock({ id: "admin-1", role: "ADMIN" }, { ...stockEntry, units: 3 });
     expect(response.status).toBe(201);
     expect(response.body.inventory.status).toBe("LOW");
   });

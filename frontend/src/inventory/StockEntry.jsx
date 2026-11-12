@@ -43,7 +43,7 @@ const selectStyle = {
  * @param {Function} [props.onAdded] - Callback notifying parent components when stock is added.
  * @returns {JSX.Element} Rendered stock intake form.
  */
-export function StockEntry({ onAdded }) {
+export function StockEntry({ onAdded, userRole = "STAFF" }) {
   const [formData, setFormData] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
@@ -87,13 +87,15 @@ export function StockEntry({ onAdded }) {
         return;
       }
 
-      const label = BLOOD_GROUPS.find((bg) => bg.value === result.inventory.bloodGroup)?.label;
       setMessage({
         type: "success",
-        text: `${result.message} ${label} now has ${result.inventory.availableUnits} units.`,
+        text: userRole === "ADMIN"
+          ? `${result.message} ${BLOOD_GROUPS.find((bg) => bg.value === result.inventory.bloodGroup)?.label} now has ${result.inventory.availableUnits} units.`
+          : result.message,
       });
       setFormData(emptyForm);
-      onAdded?.();
+      if (userRole === "ADMIN") onAdded?.();
+      else window.dispatchEvent(new Event("operation-approval-changed"));
     } catch {
       setMessage({ type: "error", text: "Network error. Please try again." });
     } finally {
@@ -103,7 +105,7 @@ export function StockEntry({ onAdded }) {
 
   return (
     <section style={{ background: "#fff", padding: "24px", borderRadius: "16px", border: "1px solid #e7dcd3" }}>
-      <h3 style={{ margin: "0 0 4px", fontFamily: "Manrope, sans-serif", fontSize: "20px" }}>Add Blood Units</h3>
+      <h3 style={{ margin: "0 0 4px", fontFamily: "Manrope, sans-serif", fontSize: "20px" }}>{userRole === "ADMIN" ? "Add Blood Units" : "Suggest Blood Unit Addition"}</h3>
       <p style={{ margin: "0 0 16px", color: "#81716a", fontSize: "13px" }}>
         For stock additions other than accepted donations. Donations are recorded when the donation is completed.
       </p>
@@ -172,7 +174,7 @@ export function StockEntry({ onAdded }) {
         )}
 
         <button type="submit" disabled={submitting} style={{ marginTop: "8px" }}>
-          {submitting ? "Adding units…" : "Add Blood Units"}
+        {submitting ? "Submitting…" : userRole === "ADMIN" ? "Add Blood Units" : "Submit for Admin Approval"}
         </button>
       </form>
     </section>

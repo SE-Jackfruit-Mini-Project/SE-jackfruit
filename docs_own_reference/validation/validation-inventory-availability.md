@@ -15,6 +15,9 @@ Validate staff inventory updates, inventory grouping, viewing inventory, checkin
 
 ### Inventory requirements from the RE baseline
 - [ ] Confirm only authorized staff can add or modify inventory.
+- [ ] Confirm staff stock additions and inventory adjustments are proposals and do not change quantities before administrator approval.
+- [ ] Confirm only administrators can approve/reject proposals and direct staff API requests cannot bypass review.
+- [ ] Confirm approved additions/adjustments update inventory and append exactly one inventory movement; rejected proposals change neither.
 - [ ] Confirm the way inventory is categorized by blood group and type is defined.
 - [ ] Confirm authorized users and their permissions for viewing availability are clear.
 - [ ] Confirm blood-unit statuses and permitted status transitions are defined.
@@ -51,6 +54,7 @@ Validate staff inventory updates, inventory grouping, viewing inventory, checkin
 | FR-028, FR-039 | Both describe the inventory update after allocation. | Medium | FR-028 owns the inventory update; FR-039 refers to FR-028. Neither requirement is deleted or renumbered. | Resolved (proposed, pending team confirmation) |
 | FR-024 | Historical inventory requirements were TBD. | Low | Movement log retained; retention period and reporting remain TBD. | Open |
 | NFR-001, NFR-002 | Measurable performance/concurrency targets are not agreed. | Medium | Kept explicitly TBD. | Open |
+| FR-023, FR-027; administration workflow (implementation addition) | The baseline permits inventory operations but does not define an approval gate for staff. | Medium | Staff additions and adjustments are persisted as pending proposals; an administrator's approval applies the stock change and audit movement atomically. Rejection leaves inventory unchanged. Admins may make operational changes directly. This supplements the frozen SRS without editing it. | Implemented; test coverage added |
 
 ## Acceptance criteria
 - All assigned requirements have been checked against the validation checklist.
@@ -67,6 +71,7 @@ FR-023 to FR-029 and BR-005/BR-008 to BR-010 are in the uploaded RE files. NFR-0
 - Confirm which attributes identify an inventory entry, including blood group/type and status.
 - Confirm whether historical inventory movements must be retained.
 - Confirm how concurrent allocation attempts should be handled.
+- Verify proposal review does not double-apply inventory movements and that pending/rejected proposals do not affect availability.
 
 ## Completion record
 **Validated by:** Vedanth Kiran  
