@@ -165,7 +165,7 @@ tests/
 .github/workflows/       GitHub Actions CI configuration
 ```
 
-The SRS, SAD, and Test Plan submission copies are maintained separately from this repository. Keep them synchronized with approved changes to requirements, implementation, and tests.
+Frozen SRS/SAD Word copies are in srs_document/ and sad_document/. Historical Word test plans remain in testplan_document/; current regression additions are in test_plan-v5.md. Record implementation differences in deviations.md without rewriting frozen baselines. The local review supplement is docs_own_reference/code_review/STATIC_CODE_REVIEW_REPORT-v2.md.
 
 ## Development workflow
 
