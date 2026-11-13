@@ -178,7 +178,7 @@ export function StockEntry({ onAdded, userRole = "STAFF" }) {
         )}
 
         <button type="submit" disabled={submitting} style={{ marginTop: "8px" }}>
-        {submitting ? "Submitting." : userRole === "ADMIN" ? "Add Blood Units" : "Submit for Admin Approval"}
+        {submitting ? "Submitting…" : userRole === "ADMIN" ? "Add Blood Units" : "Submit for Admin Approval"}
         </button>
       </form>
     </section>
