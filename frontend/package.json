@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build --configLoader native",
     "preview": "vite preview",
-    "test": "vitest run --config vitest.config.js"
+    "test": "node run-tests.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",

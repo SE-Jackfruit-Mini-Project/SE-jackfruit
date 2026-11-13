@@ -27,3 +27,17 @@ These are implementation additions to the requirements around appointment slot m
 The approval workflow is represented in the Prisma schema and exposed through the staff/admin dashboard. Related checks are documented in the VAL-002, VAL-003, and VAL-004 validation notes, test-plan cases TC-041 through TC-051, and the associated unit and integration suites.
 
 Because the schema adds the `operation_approvals` table and related enums, developers must regenerate Prisma Client and synchronize their local database schema before running this branch. Use the setup commands in the README; do not reset a database containing data you need to keep.
+
+## Request stock and dashboard consistency review
+
+The November 2026 consistency fixes preserve the frozen SRS and SAD and the existing approval policy. Blood request approval remains separate from allocation. Operational stock proposals remain pending until an administrator applies them; administrators may add stock directly.
+
+| Area | Clarification or correction | Reason |
+|---|---|---|
+| Request tracking | Failed requester and review-list loads display an error with a refresh action. Allocated requests have a fulfilled badge and an explicit staff filter. | A failed load must not imply that no requests exist, and successful allocation must not look like rejection. |
+| Submission handling | Request and stock forms ignore duplicate submissions while a call is in flight. Stock success handling uses the returned inventory or proposal shape rather than a potentially stale displayed role. | Prevents rapid duplicate writes and avoids reporting a successful proposal as a network failure. This is a local UI guard, not server-wide idempotency. |
+| Operational review | Overlapping approval/rejection calls from one mounted panel are blocked. Both decisions notify dependent dashboard panels. | Keeps the review queue and dependent inventory/slot views consistent. Existing transactional server checks remain authoritative. |
+| Dashboard updates | Allocation refreshes inventory and the request-review panel. Recording a donation refreshes inventory. No dashboard is shown after session loading fails. | Avoids stale quantities, stale approved request rows, and a donor dashboard flash during login redirection. |
+| Validation tooling | The frontend test launcher imports its existing configuration through Node and Vite builds load configuration natively. | Managed Windows execution can deny esbuild access to ancestor directories during config bundling. The test suites, JSX transformation, and application build remain enabled. CI already uses Node 22. |
+
+Regression coverage and manual acceptance steps are in `testplan_document/test_plan-v5.md`. Existing Word test plans remain historical baselines. These corrections add no database schema changes beyond those already present on GitHub main.

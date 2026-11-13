@@ -23,8 +23,9 @@ const jestLikeReporter = {
 
 export default defineConfig({
   root: "..",
+  esbuild: { jsx: "automatic" },
   test: {
-    include: ["tests/unit-testing/frontend/**/*.test.js"],
+    include: ["tests/unit-testing/frontend/**/*.test.js", "frontend/src/**/*.test.js"],
     reporters: ["default", jestLikeReporter],
   },
 });
