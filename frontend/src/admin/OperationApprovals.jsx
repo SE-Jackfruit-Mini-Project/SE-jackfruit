@@ -86,7 +86,7 @@ export function OperationApprovals({ userRole, onDecision }) {
       </div>
 
       {error && <div className="form-message error" role="alert" style={{ marginTop: "16px" }}>{error}</div>}
-      {loading ? <p style={{ color: "#81716a", marginTop: "16px" }}>Loading proposals…</p> : approvals.length === 0 ? (
+      {loading ? <p style={{ color: "#81716a", marginTop: "16px" }}>Loading proposals…</p> : error ? null : approvals.length === 0 ? (
         <p style={{ color: "#81716a", marginTop: "16px" }}>
           {userRole === "ADMIN" ? "There are no staff proposals awaiting approval." : "You have not submitted any change proposals."}
         </p>
