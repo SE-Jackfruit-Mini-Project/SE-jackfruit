@@ -264,6 +264,18 @@ describe("full system integration workflow", () => {
       .set(as("ADMIN", "admin-1")).send({ decision: "APPROVE" });
     expect(duplicateSlotApproval.status).toBe(409);
     expect(slots.size).toBe(1);
+
+    // Duplicate or coincident slot creation is blocked for both admin and staff
+    const duplicateAdminSlot = await request(app).post("/api/v1/appointment-slots").set(as("ADMIN", "admin-1")).send({
+      date: slotDate, startTime: "09:00", endTime: "10:00", maxCapacity: 5,
+    });
+    expect(duplicateAdminSlot.status).toBe(409);
+
+    const duplicateStaffSlot = await request(app).post("/api/v1/appointment-slots").set(as("STAFF", "staff-1")).send({
+      date: slotDate, startTime: "09:00", endTime: "10:00", maxCapacity: 5,
+    });
+    expect(duplicateStaffSlot.status).toBe(409);
+
     const slotId = [...slots.keys()][0];
 
     const booking = await request(app).post("/api/v1/appointments").set(as("DONOR", donorId)).send({
@@ -385,6 +397,18 @@ describe("full system integration workflow", () => {
     });
     const approvedDeletion = await request(app).delete(`/api/v1/appointment-slots/${deletable.body.slot.id}`).set(as("STAFF", "staff-1"));
     expect(approvedDeletion.status).toBe(202);
+
+    // Duplicate deletion proposal for the same slot is deduplicated and returns the existing pending proposal
+    const duplicateDeletion = await request(app).delete(`/api/v1/appointment-slots/${deletable.body.slot.id}`).set(as("STAFF", "staff-2"));
+    expect(duplicateDeletion.status).toBe(202);
+    expect(duplicateDeletion.body.approval.id).toBe(approvedDeletion.body.approval.id);
+
+    const pendingApprovals = await request(app).get("/api/v1/operation-approvals").set(as("ADMIN", "admin-1"));
+    const matchingProposals = pendingApprovals.body.approvals.filter(
+      (p) => p.action === "DELETE_SLOT" && p.payload?.slotId === deletable.body.slot.id
+    );
+    expect(matchingProposals).toHaveLength(1);
+
     const deletionDecision = await request(app).post(`/api/v1/operation-approvals/${approvedDeletion.body.approval.id}/review`)
       .set(as("ADMIN", "admin-1")).send({ decision: "APPROVE" });
     expect(deletionDecision.status).toBe(200);
