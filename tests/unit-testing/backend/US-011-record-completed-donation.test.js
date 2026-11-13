@@ -11,7 +11,10 @@ import { jest } from "@jest/globals";
 const userFindMany = jest.fn();
 const userFindFirst = jest.fn();
 const donationFindMany = jest.fn();
+const donationFindFirst = jest.fn();
 const donationCreate = jest.fn();
+const appointmentFindMany = jest.fn();
+const appointmentUpdate = jest.fn();
 const inventoryUpsert = jest.fn();
 const inventoryUpdate = jest.fn();
 const movementCreate = jest.fn();
@@ -55,7 +58,10 @@ beforeEach(() => {
   userFindMany.mockReset();
   userFindFirst.mockReset();
   donationFindMany.mockReset();
+  donationFindFirst.mockReset().mockResolvedValue(null);
   donationCreate.mockReset();
+  appointmentFindMany.mockReset().mockResolvedValue([{ id: "appointment-1", status: "SCHEDULED" }]);
+  appointmentUpdate.mockReset();
   inventoryUpsert.mockReset();
   inventoryUpdate.mockReset();
   movementCreate.mockReset();
@@ -64,7 +70,8 @@ beforeEach(() => {
   transaction.mockImplementation(async (callback) =>
     callback({
       user: { findFirst: userFindFirst },
-      donation: { create: donationCreate },
+      donation: { create: donationCreate, findFirst: donationFindFirst },
+      appointment: { findMany: appointmentFindMany, update: appointmentUpdate },
       inventory: {
         upsert: inventoryUpsert,
         update: inventoryUpdate,
@@ -249,5 +256,68 @@ describe("US-011 record completed blood donation", () => {
 
     expect(donationCreate).not.toHaveBeenCalled();
     expect(inventoryUpsert).not.toHaveBeenCalled();
+  });
+
+  test("rejects drawing blood from the same person for the same slot more than once", async () => {
+    userFindFirst.mockResolvedValue({ id: "donor-1", bloodGroup: "A_POSITIVE", gender: "MALE" });
+    donationFindFirst.mockResolvedValueOnce({ id: "donation-prior", donationDate: new Date("2026-01-15T00:00:00.000Z") });
+
+    await expect(
+      recordCompletedDonation("staff-1", {
+        donorId: "donor-1",
+        units: 1,
+        donationDate: "2026-01-15",
+        accepted: true,
+      })
+    ).rejects.toMatchObject({
+      message: "Blood has already been drawn from this donor for this appointment slot.",
+      status: 400,
+    });
+
+    expect(donationCreate).not.toHaveBeenCalled();
+  });
+
+  test("rejects drawing blood before the gender-based waiting period has elapsed", async () => {
+    userFindFirst.mockResolvedValue({ id: "donor-1", bloodGroup: "A_POSITIVE", gender: "MALE" });
+    // First call to donationFindFirst checks same slot (returns null)
+    // Second call to donationFindFirst checks previous accepted donation
+    donationFindFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: "prev-donation", donationDate: new Date("2026-01-01T00:00:00.000Z"), accepted: true });
+
+    await expect(
+      recordCompletedDonation("staff-1", {
+        donorId: "donor-1",
+        units: 1,
+        donationDate: "2026-02-01",
+        accepted: true,
+      })
+    ).rejects.toMatchObject({
+      message: expect.stringContaining("waiting period for their gender"),
+      status: 400,
+    });
+
+    expect(donationCreate).not.toHaveBeenCalled();
+  });
+
+  test("marks the scheduled appointment as completed when donation is recorded", async () => {
+    userFindFirst.mockResolvedValue({ id: "donor-1", bloodGroup: "O_POSITIVE", gender: "FEMALE" });
+    appointmentFindMany.mockResolvedValue([{ id: "appointment-42", status: "SCHEDULED" }]);
+    donationCreate.mockResolvedValue({ id: "donation-42", accepted: true });
+    inventoryUpsert.mockResolvedValue({ id: "inv-1", bloodGroup: "O_POSITIVE", availableUnits: 1, status: "LOW" });
+    inventoryUpdate.mockResolvedValue({ id: "inv-1", bloodGroup: "O_POSITIVE", availableUnits: 1, status: "LOW" });
+    movementCreate.mockResolvedValue({ id: "mov-1" });
+
+    await recordCompletedDonation("staff-1", {
+      donorId: "donor-1",
+      units: 1,
+      donationDate: "2026-01-15",
+      accepted: true,
+    });
+
+    expect(appointmentUpdate).toHaveBeenCalledWith({
+      where: { id: "appointment-42" },
+      data: { status: "COMPLETED" },
+    });
   });
 });

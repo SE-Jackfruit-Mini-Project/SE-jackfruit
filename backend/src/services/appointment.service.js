@@ -23,7 +23,7 @@ function calculateAge(dateOfBirth, at = new Date()) {
   return age;
 }
 
-function addCalendarMonths(date, months) {
+export function addCalendarMonths(date, months) {
   const targetMonth = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1));
   const lastDay = new Date(Date.UTC(targetMonth.getUTCFullYear(), targetMonth.getUTCMonth() + 1, 0)).getUTCDate();
   return new Date(Date.UTC(
@@ -96,6 +96,14 @@ export async function bookAppointment(donorId, input) {
     const error = new Error("Selected appointment slot was not found.");
     error.status = 404;
     throw error;
+  }
+
+  if (previousDonation) {
+    const allowedFrom = addCalendarMonths(previousDonation.donationDate, intervalMonths);
+    const allowedDateStr = allowedFrom.toISOString().slice(0, 10);
+    if (new Date() < allowedFrom || slot.date < allowedDateStr) {
+      rejectBooking(`You can book your next appointment on or after ${allowedDateStr}.`);
+    }
   }
 
   const now = new Date();
