@@ -4,6 +4,7 @@
  * or fallback messaging informing users when medical guidance is pending review in compliance with US-008.
  */
 
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getEligibilityState } from "./eligibility-content.js";
 
@@ -15,6 +16,14 @@ import { getEligibilityState } from "./eligibility-content.js";
  */
 export function EligibilityPage() {
   const eligibility = getEligibilityState();
+  const [signedIn, setSignedIn] = useState(false);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/v1/auth/me", { credentials: "include" })
+      .then(response => { if (active) setSignedIn(response.ok); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
   return (
     <main className="eligibility-page">
       <article className="eligibility-card" aria-labelledby="eligibility-title">
@@ -40,8 +49,10 @@ export function EligibilityPage() {
         </p>
 
         <nav className="eligibility-links" aria-label="Next steps">
-          <Link to="/register">Create a donor account</Link>
-          <Link to="/login">Log in</Link>
+          {signedIn ? <Link to="/dashboard">Back to dashboard</Link> : <>
+            <Link to="/register">Create a donor account</Link>
+            <Link to="/login">Log in</Link>
+          </>}
         </nav>
       </article>
     </main>

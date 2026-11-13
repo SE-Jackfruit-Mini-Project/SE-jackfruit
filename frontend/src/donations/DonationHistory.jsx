@@ -32,13 +32,15 @@ function formatDate(value) {
  * @component
  * @returns {JSX.Element} Rendered donation history section.
  */
-export function DonationHistory() {
+export function DonationHistory({ refreshKey = 0 } = {}) {
   const [donations, setDonations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Retrieve donation records on component mount
   useEffect(() => {
+    setError(null);
+    setLoading(true);
     fetch("/api/v1/donation-history", { credentials: "include" })
       .then(async (response) => {
         const result = await response.json().catch(() => ({}));
@@ -47,7 +49,7 @@ export function DonationHistory() {
       })
       .catch((loadError) => setError(loadError.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [refreshKey]);
 
   return (
     <section style={{ marginTop: "28px", background: "#fff", padding: "24px", borderRadius: "16px", border: "1px solid #e7dcd3" }}>
