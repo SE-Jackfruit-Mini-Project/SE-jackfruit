@@ -303,3 +303,8 @@ Final local validation: 197 backend tests across 23 suites and 22 frontend tests
 ### Change control
 
 This addendum was prepared and validated locally. The user subsequently authorized adding the fixes and reports to existing PR #224 while retaining its commits. No merge or SonarCloud suppression was requested. Earlier local results must be distinguished from the final published commit checks; frozen baselines remain unchanged.
+
+
+### Publication security follow-up
+
+The first published revision passed GitHub backend/frontend CI but SonarCloud flagged a literal placeholder in the disposable database fixture passwordHash field (javascript:S2068). The fixture now generates a random value and hashes it with bcrypt; no known test credential is stored. This was corrected without suppressing the finding or changing quality-gate settings. The final revision must receive its own analysis result.

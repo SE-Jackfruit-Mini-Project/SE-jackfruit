@@ -1,8 +1,10 @@
+import { randomBytes } from 'node:crypto';
+import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';import assert from 'node:assert/strict';dotenv.config({ path: new URL('../.env', import.meta.url), quiet: true });import {prisma as p} from '../src/utils/prisma.js';import {bookAppointment} from '../src/services/appointment.service.js';import {recordCompletedDonation} from '../src/services/donation.service.js';
 if(new URL(process.env.DATABASE_URL).hostname!=='localhost')throw Error('Local database required');
 const tag='audit-'+Date.now();const ids=[],slotIds=[];const day=n=>new Date(Date.now()+n*86400000).toISOString().slice(0,10);const find=p.appointmentSlot.findUnique.bind(p.appointmentSlot);let result;
 // Fixture-only local PostgreSQL test; every created row is removed in finally.
-try{for(let i=0;i<3;i++)ids.push((await p.user.create({data:{fullName:'Disposable SE audit '+i,email:tag+'-'+i+'@example.test',passwordHash:'not-a-login-account',role:i===2?'STAFF':'DONOR',gender:'MALE',dateOfBirth:new Date('2000-01-01'),bloodGroup:'O_POSITIVE'}})).id);
+try{for(let i=0;i<3;i++)ids.push((await p.user.create({data:{fullName:'Disposable SE audit '+i,email:tag+'-'+i+'@example.test',passwordHash:await bcrypt.hash(randomBytes(32).toString('hex'),10),role:i===2?'STAFF':'DONOR',gender:'MALE',dateOfBirth:new Date('2000-01-01'),bloodGroup:'O_POSITIVE'}})).id);
 const slot=await p.appointmentSlot.create({data:{date:day(10),startTime:'08:00',endTime:'09:00',maxCapacity:1}});slotIds.push(slot.id);
 let reads=0,release;const barrier=new Promise(r=>release=r);p.appointmentSlot.findUnique=async args=>{const row=await find(args);if(args.where.id===slot.id){if(++reads===2)release();await barrier;}return row;};
 const outcomes=await Promise.allSettled(ids.slice(0,2).map(id=>bookAppointment(id,{slotId:slot.id,weightKg:65})));p.appointmentSlot.findUnique=find;
