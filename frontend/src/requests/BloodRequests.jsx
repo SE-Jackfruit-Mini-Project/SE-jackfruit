@@ -216,7 +216,7 @@ export function BloodRequests() {
           )}
 
           <button type="submit" disabled={submitting} style={{ marginTop: "8px" }}>
-            {submitting ? "Submitting request." : "Submit Blood Request"}
+            {submitting ? "Submitting request…" : "Submit Blood Request"}
           </button>
         </form>
       </section>
@@ -244,7 +244,7 @@ export function BloodRequests() {
         </div>
 
         {loading ? (
-          <p style={{ color: "#81716a", fontSize: "14px" }}>Loading your requests.</p>
+          <p style={{ color: "#81716a", fontSize: "14px" }}>Loading your requests…</p>
         ) : loadError ? (
           <div className="form-message error" role="alert">{loadError}</div>
         ) : requests.length === 0 ? (

@@ -172,7 +172,7 @@ export function ReviewRequests({ onReviewed, refreshKey = 0 }) {
       )}
 
       {loading ? (
-        <p style={{ color: "#81716a", fontSize: "14px" }}>Loading requests.</p>
+        <p style={{ color: "#81716a", fontSize: "14px" }}>Loading requests…</p>
       ) : loadError ? (
         <div className="form-message error" role="alert">{loadError}</div>
       ) : requests.length === 0 ? (
@@ -215,7 +215,7 @@ export function ReviewRequests({ onReviewed, refreshKey = 0 }) {
                   </td>
                   <td style={{ padding: "10px 8px", fontWeight: 600 }}>{req.hospitalName}</td>
                   <td style={{ padding: "10px 8px", fontSize: "13px", color: "#6b5c56" }}>
-                    {req.requester?.fullName || "-"}
+                    {req.requester?.fullName || "—"}
                   </td>
                   <td style={{ padding: "10px 8px", fontWeight: "bold" }}>
                     {req.bloodGroup.replace("_POSITIVE", "+").replace("_NEGATIVE", "-")}
