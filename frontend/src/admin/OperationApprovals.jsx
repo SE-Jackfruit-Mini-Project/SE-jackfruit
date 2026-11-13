@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const ACTION_LABELS = {
   CREATE_SLOT: "Create appointment slot",
@@ -10,15 +10,15 @@ const ACTION_LABELS = {
 function describeProposal(proposal) {
   const data = proposal.payload || {};
   if (proposal.action === "CREATE_SLOT") {
-    return `${data.date}, ${data.startTime}–${data.endTime}, capacity ${data.maxCapacity}`;
+    return `${data.date}, ${data.startTime}-${data.endTime}, capacity ${data.maxCapacity}`;
   }
   if (proposal.action === "DELETE_SLOT") {
-    return `${data.date}, ${data.startTime}–${data.endTime} (${data.bookedCount}/${data.maxCapacity} booked)`;
+    return `${data.date}, ${data.startTime}-${data.endTime} (${data.bookedCount}/${data.maxCapacity} booked)`;
   }
   const group = String(data.bloodGroup || "").replace("_POSITIVE", "+").replace("_NEGATIVE", "-");
-  if (proposal.action === "ADD_STOCK") return `${data.units} units of ${group} · ${data.type}${data.reason ? ` · ${data.reason}` : ""}`;
+  if (proposal.action === "ADD_STOCK") return `${data.units} units of ${group} � ${data.type}${data.reason ? ` � ${data.reason}` : ""}`;
   const sign = Number(data.delta) > 0 ? "+" : "";
-  return `${sign}${data.delta} units of ${group} · ${data.reason || "No reason provided"}`;
+  return `${sign}${data.delta} units of ${group} � ${data.reason || "No reason provided"}`;
 }
 
 /** Admin review queue and staff view of their submitted operational proposals. */
@@ -27,6 +27,7 @@ export function OperationApprovals({ userRole, onDecision }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
+  const reviewInFlight = useRef(false);
 
   async function loadApprovals() {
     setLoading(true);
@@ -51,6 +52,8 @@ export function OperationApprovals({ userRole, onDecision }) {
   }, []);
 
   async function review(approvalId, decision) {
+    if (reviewInFlight.current) return;
+    reviewInFlight.current = true;
     setBusyId(approvalId);
     setError("");
     try {
@@ -63,10 +66,11 @@ export function OperationApprovals({ userRole, onDecision }) {
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || "Could not review this request.");
       await loadApprovals();
-      if (decision === "APPROVE") onDecision?.(result.approval);
+      onDecision?.(result.approval);
     } catch (reviewError) {
       setError(reviewError.message || "Could not review this request.");
     } finally {
+      reviewInFlight.current = false;
       setBusyId("");
     }
   }
@@ -86,7 +90,7 @@ export function OperationApprovals({ userRole, onDecision }) {
       </div>
 
       {error && <div className="form-message error" role="alert" style={{ marginTop: "16px" }}>{error}</div>}
-      {loading ? <p style={{ color: "#81716a", marginTop: "16px" }}>Loading proposals…</p> : error ? null : approvals.length === 0 ? (
+      {loading ? <p style={{ color: "#81716a", marginTop: "16px" }}>Loading proposals.</p> : error ? null : approvals.length === 0 ? (
         <p style={{ color: "#81716a", marginTop: "16px" }}>
           {userRole === "ADMIN" ? "There are no staff proposals awaiting approval." : "You have not submitted any change proposals."}
         </p>
@@ -98,16 +102,16 @@ export function OperationApprovals({ userRole, onDecision }) {
                 <strong>{ACTION_LABELS[proposal.action] || proposal.action}</strong>
                 <p style={{ margin: "5px 0", color: "#51413b" }}>{describeProposal(proposal)}</p>
                 <small style={{ color: "#81716a" }}>
-                  Requested by {proposal.requester?.fullName || "Staff"} · {new Date(proposal.createdAt).toLocaleString()}
-                  {proposal.status !== "PENDING" ? ` · ${proposal.status}${proposal.decisionNote ? `: ${proposal.decisionNote}` : ""}` : ""}
+                  Requested by {proposal.requester?.fullName || "Staff"} � {new Date(proposal.createdAt).toLocaleString()}
+                  {proposal.status !== "PENDING" ? ` � ${proposal.status}${proposal.decisionNote ? `: ${proposal.decisionNote}` : ""}` : ""}
                 </small>
               </div>
               {userRole === "ADMIN" && proposal.status === "PENDING" && (
                 <div style={{ display: "flex", gap: "8px" }}>
-                  <button type="button" disabled={busyId === proposal.id} onClick={() => void review(proposal.id, "APPROVE")}>
-                    {busyId === proposal.id ? "Saving…" : "Approve"}
+                  <button type="button" disabled={busyId !== ""} onClick={() => void review(proposal.id, "APPROVE")}>
+                    {busyId === proposal.id ? "Saving." : "Approve"}
                   </button>
-                  <button type="button" disabled={busyId === proposal.id} onClick={() => void review(proposal.id, "REJECT")} style={{ background: "#f3ebe4", color: "#862f2b" }}>
+                  <button type="button" disabled={busyId !== ""} onClick={() => void review(proposal.id, "REJECT")} style={{ background: "#f3ebe4", color: "#862f2b" }}>
                     Reject
                   </button>
                 </div>

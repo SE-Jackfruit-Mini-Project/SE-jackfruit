@@ -22,8 +22,8 @@ operationApprovalRouter.post("/", requireAuth, requireRole("STAFF"), async (requ
   try {
     const approval = await submitOperationProposal(
       request.session.user.id,
-      request.body.action,
-      request.body.payload,
+      request.body?.action,
+      request.body?.payload,
     );
     return response.status(202).json({
       message: "Change proposal sent to an administrator for approval.",
@@ -48,8 +48,8 @@ operationApprovalRouter.post("/:id/review", requireAuth, requireRole("ADMIN"), a
     const approval = await decideOperationApproval(
       request.params.id,
       request.session.user.id,
-      request.body.decision,
-      typeof request.body.decisionNote === "string" ? request.body.decisionNote.trim().slice(0, 200) : "",
+      request.body?.decision,
+      typeof request.body?.decisionNote === "string" ? request.body.decisionNote.trim().slice(0, 200) : "",
     );
     return response.json({
       message: approval.status === "APPROVED" ? "Proposal approved and applied." : "Proposal rejected.",

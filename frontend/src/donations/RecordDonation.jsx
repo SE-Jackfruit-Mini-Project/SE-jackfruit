@@ -29,7 +29,7 @@ const inputStyle = {
  * @component
  * @returns {JSX.Element} Rendered donation intake form and recent donations log.
  */
-export function RecordDonation() {
+export function RecordDonation({ onRecorded }) {
   // State for registered donors, recent donation records, loading flags, and form input
   const [donors, setDonors] = useState([]);
   const [donations, setDonations] = useState([]);
@@ -179,6 +179,7 @@ export function RecordDonation() {
         notes: "",
       });
 
+      onRecorded?.();
       await refreshData();
     } catch {
       setMessage({

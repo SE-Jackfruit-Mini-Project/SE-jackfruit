@@ -37,6 +37,7 @@ export function Dashboard() {
   const [inventoryVersion, setInventoryVersion] = useState(0);
   const [allocationQueueVersion, setAllocationQueueVersion] = useState(0);
   const [slotVersion, setSlotVersion] = useState(0);
+  const [requestVersion, setRequestVersion] = useState(0);
   const navigate = useNavigate();
 
   // Validate session on mount and redirect unauthenticated users to login
@@ -65,7 +66,7 @@ export function Dashboard() {
     navigate("/login");
   }
 
-  if (loading) return null;
+  if (loading || !user) return null;
 
   return (
     <main
@@ -162,11 +163,15 @@ export function Dashboard() {
             }}
           />
           <ReviewRequests
+            refreshKey={requestVersion}
             onReviewed={() => setAllocationQueueVersion((version) => version + 1)}
           />
           <AllocateRequests
             refreshKey={allocationQueueVersion}
-            onAllocated={() => setInventoryVersion((version) => version + 1)}
+            onAllocated={() => {
+              setInventoryVersion((version) => version + 1);
+              setRequestVersion((version) => version + 1);
+            }}
           />
           <BloodAvailability refreshKey={inventoryVersion} />
           <StockEntry
@@ -181,7 +186,7 @@ export function Dashboard() {
 
           <ManageSlots userRole={user.role} refreshKey={slotVersion} />
           <DonorInformation />
-          <RecordDonation />
+          <RecordDonation onRecorded={() => setInventoryVersion((version) => version + 1)} />
         </div>
       ) : (
         <>

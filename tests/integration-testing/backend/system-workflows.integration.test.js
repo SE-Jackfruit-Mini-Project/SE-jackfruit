@@ -445,4 +445,30 @@ describe("full system integration workflow", () => {
     expect(otherStaffProposals.status).toBe(200);
     expect(otherStaffProposals.body.approvals).toHaveLength(0);
   });
+
+  test("missing operational proposal and decision bodies return validation errors", async () => {
+    const proposal = await request(app).post("/api/v1/operation-approvals").set(as("STAFF", "staff-1"));
+    const decision = await request(app).post("/api/v1/operation-approvals/missing/review").set(as("ADMIN", "admin-1"));
+    expect(proposal.status).toBe(400);
+    expect(decision.status).toBe(400);
+    expect(operationApprovals.size).toBe(0);
+    expect(inventory.size).toBe(0);
+  });
+
+  test("an approval that cannot apply stock rolls back its decision and can be rejected", async () => {
+    const proposal = await request(app).patch("/api/v1/inventory/A_POSITIVE").set(as("STAFF", "staff-1"))
+      .send({ delta: -2, reason: "Expired units" });
+    expect(proposal.status).toBe(202);
+    const id = proposal.body.approval.id;
+    const failed = await request(app).post(`/api/v1/operation-approvals/${id}/review`).set(as("ADMIN", "admin-1"))
+      .send({ decision: "APPROVE" });
+    expect(failed.status).toBe(409);
+    expect(operationApprovals.get(id).status).toBe("PENDING");
+    expect(inventory.size).toBe(0);
+    expect(movements).toHaveLength(0);
+    const rejected = await request(app).post(`/api/v1/operation-approvals/${id}/review`).set(as("ADMIN", "admin-1"))
+      .send({ decision: "REJECT" });
+    expect(rejected.status).toBe(200);
+    expect(operationApprovals.get(id).status).toBe("REJECTED");
+  });
 });
