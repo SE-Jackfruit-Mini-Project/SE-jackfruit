@@ -13,11 +13,15 @@ const findDonor = jest.fn();
 const findDonation = jest.fn();
 const createAppointment = jest.fn();
 const updateSlot = jest.fn();
+const updateAppointment = jest.fn();
+const reserveSlot = jest.fn();
+const readReservedSlot = jest.fn();
+const claimCancelled = jest.fn();
 const transaction = jest.fn();
 
 const tx = {
-  appointment: { create: createAppointment },
-  appointmentSlot: { update: updateSlot },
+  appointment: { create: createAppointment, updateMany: claimCancelled, findUnique: updateAppointment },
+  appointmentSlot: { update: updateSlot, updateMany: reserveSlot, findUnique: readReservedSlot },
 };
 
 // Mock Prisma client singleton
@@ -44,6 +48,10 @@ beforeEach(() => {
   findDonor.mockReset();
   createAppointment.mockReset();
   updateSlot.mockReset();
+  updateAppointment.mockReset();
+  reserveSlot.mockReset().mockResolvedValue({ count: 1 });
+  readReservedSlot.mockReset().mockResolvedValue({ bookedCount: 1, maxCapacity: 10 });
+  claimCancelled.mockReset().mockResolvedValue({ count: 1 });
   findDonor.mockResolvedValue({
     role: "DONOR",
     dateOfBirth: new Date("1995-06-15T00:00:00.000Z"),
@@ -249,4 +257,24 @@ describe("US-004 book donation appointment", () => {
       .rejects.toMatchObject({ status: 400, message: expect.stringContaining("2026-11-10") });
     expect(createAppointment).not.toHaveBeenCalled();
   });
+});
+
+test("rebooks a cancelled slot without violating the donor-slot unique constraint", async () => {
+  prepareSuccessfulBooking();
+  findFirst.mockResolvedValue({ id: "cancelled-1", status: "CANCELLED" });
+  updateAppointment.mockResolvedValue({ id: "cancelled-1", status: "SCHEDULED" });
+  await expect(bookAppointment("donor-1", { slotId: "slot-1", weightKg: 60 })).resolves.toMatchObject({ status: "SCHEDULED" });
+  expect(createAppointment).not.toHaveBeenCalled();
+  expect(claimCancelled).toHaveBeenCalledWith(expect.objectContaining({ where: { id: "cancelled-1", status: "CANCELLED" }, data: expect.objectContaining({ status: "SCHEDULED", weightKg: 60 }) }));
+});
+
+test("a concurrent reservation that fills the slot rejects without creating an appointment", async () => {
+  prepareSuccessfulBooking(); reserveSlot.mockResolvedValue({ count: 0 });
+  await expect(bookAppointment("donor-2", { slotId: "slot-1", weightKg: 60 })).rejects.toMatchObject({ status: 400 });
+  expect(createAppointment).not.toHaveBeenCalled();
+});
+test("a cancelled record claimed concurrently cannot be rebooked twice", async () => {
+  prepareSuccessfulBooking(); findFirst.mockResolvedValue({ id: "cancelled-1", status: "CANCELLED" }); claimCancelled.mockResolvedValue({ count: 0 });
+  await expect(bookAppointment("donor-1", { slotId: "slot-1", weightKg: 60 })).rejects.toMatchObject({ status: 400 });
+  expect(updateAppointment).not.toHaveBeenCalled();
 });

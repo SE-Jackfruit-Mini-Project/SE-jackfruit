@@ -127,44 +127,46 @@ export async function bookAppointment(donorId, input) {
     where: {
       donorId,
       slotId: values.slotId,
-      status: "SCHEDULED",
     },
   });
 
-  if (existingBooking) {
+  if (existingBooking && existingBooking.status !== "CANCELLED") {
     const error = new Error("You already have a scheduled booking for this slot.");
     error.status = 400;
     throw error;
   }
 
-  // 4. Atomically create appointment and increment slot count (AC-4, AC-5, AC-6)
-  const result = await prisma.$transaction(async (tx) => {
-    const appointment = await tx.appointment.create({
-      data: {
-        donorId,
-        slotId: values.slotId,
-        weightKg: values.weightKg,
-        notes: values.notes || null,
-        status: "SCHEDULED",
-      },
-      include: {
-        slot: true,
-      },
+  // Reserve capacity using the current database value, not the earlier UI snapshot.
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const reserved = await tx.appointmentSlot.updateMany({
+        where: { id: slot.id, isAvailable: true, bookedCount: { lt: slot.maxCapacity } },
+        data: { bookedCount: { increment: 1 } },
+      });
+      if (reserved.count !== 1) rejectBooking("This appointment slot has just become unavailable. Please refresh.");
+
+      const data = { donorId, slotId: values.slotId, weightKg: values.weightKg,
+        notes: values.notes || null, status: "SCHEDULED" };
+      let appointment;
+      if (existingBooking) {
+        const claimed = await tx.appointment.updateMany({
+          where: { id: existingBooking.id, status: "CANCELLED" }, data,
+        });
+        if (claimed.count !== 1) rejectBooking("This appointment has already changed. Please refresh.");
+        appointment = await tx.appointment.findUnique({ where: { id: existingBooking.id }, include: { slot: true } });
+      } else {
+        appointment = await tx.appointment.create({ data, include: { slot: true } });
+      }
+      const reservedSlot = await tx.appointmentSlot.findUnique({ where: { id: slot.id } });
+      if (reservedSlot.bookedCount >= reservedSlot.maxCapacity) {
+        await tx.appointmentSlot.update({ where: { id: slot.id }, data: { isAvailable: false } });
+      }
+      return appointment;
     });
-
-    const newBookedCount = slot.bookedCount + 1;
-    await tx.appointmentSlot.update({
-      where: { id: values.slotId },
-      data: {
-        bookedCount: newBookedCount,
-        isAvailable: newBookedCount < slot.maxCapacity,
-      },
-    });
-
-    return appointment;
-  });
-
-  return result;
+  } catch (error) {
+    if (error.code === "P2002") rejectBooking("You already have an appointment record for this slot. Please refresh.");
+    throw error;
+  }
 }
 
 /**

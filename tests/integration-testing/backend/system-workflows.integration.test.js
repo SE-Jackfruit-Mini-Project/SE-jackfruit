@@ -59,6 +59,13 @@ const prisma = {
     },
   },
   appointmentSlot: {
+    updateMany: async ({ where, data }) => {
+      const record = slots.get(where.id);
+      if (!record || (where.isAvailable !== undefined && record.isAvailable !== where.isAvailable)
+        || (where.bookedCount?.lt !== undefined && record.bookedCount >= where.bookedCount.lt)) return { count: 0 };
+      record.bookedCount += data.bookedCount.increment;
+      return { count: 1 };
+    },
     findMany: async ({ where }) => [...slots.values()].filter((slot) => {
       if (!where) return true;
       if (typeof where.date === "string") return slot.date === where.date;
@@ -88,6 +95,15 @@ const prisma = {
     },
   },
   appointment: {
+    updateMany: async ({ where, data }) => {
+      const record = appointments.get(where.id);
+      if (!record || (where.donorId && record.donorId !== where.donorId) || (where.status && record.status !== where.status)) return { count: 0 };
+      Object.assign(record, data); return { count: 1 };
+    },
+    findUnique: async ({ where, include }) => {
+      const record = appointments.get(where.id);
+      return record ? { ...record, ...(include?.slot ? { slot: { ...slots.get(record.slotId) } } : {}) } : null;
+    },
     findFirst: async ({ where }) => [...appointments.values()].find((item) =>
       item.donorId === where.donorId && item.slotId === where.slotId && (!where.status || item.status === where.status)
     ) ?? null,
@@ -96,7 +112,9 @@ const prisma = {
       appointments.set(record.id, record);
       return include?.slot ? { ...record, slot: { ...slots.get(record.slotId) } } : { ...record };
     },
-    findMany: async ({ where }) => [...appointments.values()].filter((item) => item.donorId === where.donorId),
+    findMany: async ({ where, include }) => [...appointments.values()]
+      .filter(item => item.donorId === where.donorId && (!where.status || item.status === where.status))
+      .map(item => ({ ...item, ...(include?.slot ? { slot: { ...slots.get(item.slotId) } } : {}) })),
   },
   donation: {
     findFirst: async ({ where }) => [...donations.values()]
@@ -219,7 +237,10 @@ jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({ prisma
 
 const { app } = await import("../../../backend/src/app.js");
 
-const as = (role, id) => ({ "x-test-role": role, "x-test-user-id": id });
+const as = (role, id) => {
+  if (!users.has(id)) users.set(id, { id, role, isActive: true });
+  return { "x-test-role": role, "x-test-user-id": id };
+};
 
 beforeEach(() => {
   users = new Map();
@@ -284,6 +305,8 @@ describe("full system integration workflow", () => {
     expect(booking.status).toBe(201);
     expect(booking.body.appointment.status).toBe("SCHEDULED");
 
+    // Advance the fixture to the booked day before recording intake.
+    slots.get(slotId).date = new Date().toISOString().slice(0, 10);
     const donation = await request(app).post("/api/v1/donations").set(as("STAFF", "staff-1")).send({
       donorId, units: 1, donationDate: new Date().toISOString().slice(0, 10), accepted: true,
     });
