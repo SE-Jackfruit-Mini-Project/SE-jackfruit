@@ -8,6 +8,7 @@
 import { z } from "zod";
 import { prisma } from "../utils/prisma.js";
 import { deriveStatus } from "./inventory.service.js";
+import { addCalendarMonths } from "./appointment.service.js";
 
 /**
  * Zod validation schema for recording a donation event.
@@ -64,7 +65,7 @@ const donationSchema = z.object({
  * @returns {Promise<Array<{id: string, fullName: string, email: string, bloodGroup: string}>>} Eligible appointment donors sorted alphabetically.
  */
 export async function getRegisteredDonors() {
-  return prisma.user.findMany({
+  const donors = await prisma.user.findMany({
     where: {
       role: "DONOR",
       bloodGroup: { not: null },
@@ -78,6 +79,68 @@ export async function getRegisteredDonors() {
       bloodGroup: true,
     },
   });
+
+  if (!prisma.appointment?.findFirst || !prisma.donation?.findFirst) {
+    return donors;
+  }
+
+  const now = new Date();
+  const eligibleDonors = [];
+
+  for (const donor of donors) {
+    // Check if donor has an active scheduled appointment
+    const scheduledAppointment = await prisma.appointment.findFirst({
+      where: {
+        donorId: donor.id,
+        status: "SCHEDULED",
+      },
+      include: { slot: true },
+      orderBy: [{ createdAt: "asc" }],
+    });
+
+    if (!scheduledAppointment) {
+      continue;
+    }
+
+    // Check if blood has already been drawn for this appointment slot date
+    const slotDate = scheduledAppointment.slot?.date;
+    if (slotDate) {
+      const existingDonation = await prisma.donation.findFirst({
+        where: {
+          donorId: donor.id,
+          donationDate: new Date(`${slotDate}T00:00:00.000Z`),
+        },
+      });
+      if (existingDonation) {
+        continue;
+      }
+    }
+
+    // Check gender-based waiting period from previous accepted donation
+    const donorUser = await prisma.user.findUnique({
+      where: { id: donor.id },
+      select: { gender: true },
+    });
+    const intervalMonths = donorUser?.gender === "FEMALE" ? 4 : donorUser?.gender === "MALE" ? 3 : null;
+
+    if (intervalMonths) {
+      const previousDonation = await prisma.donation.findFirst({
+        where: { donorId: donor.id, accepted: true },
+        orderBy: [{ donationDate: "desc" }, { createdAt: "desc" }],
+        select: { donationDate: true },
+      });
+      if (previousDonation) {
+        const allowedFrom = addCalendarMonths(previousDonation.donationDate, intervalMonths);
+        if (now < allowedFrom) {
+          continue;
+        }
+      }
+    }
+
+    eligibleDonors.push(donor);
+  }
+
+  return eligibleDonors;
 }
 
 /**
@@ -150,6 +213,7 @@ export async function recordCompletedDonation(staffId, input) {
       select: {
         id: true,
         bloodGroup: true,
+        gender: true,
       },
     });
 
@@ -157,6 +221,66 @@ export async function recordCompletedDonation(staffId, input) {
       const error = new Error("The selected donor must have a saved blood group and an appointment.");
       error.status = 404;
       throw error;
+    }
+
+    // 1. Verify the donor has an active scheduled appointment
+    let matchingAppointment = null;
+    if (tx.appointment?.findMany) {
+      const donorAppointments = await tx.appointment.findMany({
+        where: {
+          donorId: donor.id,
+        },
+      });
+
+      matchingAppointment = donorAppointments.find(
+        (appt) => !appt.status || appt.status === "SCHEDULED"
+      );
+
+      if (!matchingAppointment && donorAppointments.length > 0) {
+        const error = new Error("This donor does not have an active scheduled appointment slot.");
+        error.status = 400;
+        throw error;
+      }
+    }
+
+    // 2. Prevent drawing blood from the same person in the same slot more than once
+    if (tx.donation?.findFirst) {
+      const existingDonation = await tx.donation.findFirst({
+        where: {
+          donorId: donor.id,
+          donationDate,
+        },
+      });
+
+      if (existingDonation) {
+        const error = new Error("Blood has already been drawn from this donor for this appointment slot.");
+        error.status = 400;
+        throw error;
+      }
+    }
+
+    // 3. Prevent drawing blood before the gender-based waiting period has elapsed
+    if (tx.donation?.findFirst && donor.gender) {
+      const intervalMonths = donor.gender === "FEMALE" ? 4 : donor.gender === "MALE" ? 3 : null;
+      if (intervalMonths) {
+        const previousDonation = await tx.donation.findFirst({
+          where: { donorId: donor.id, accepted: true },
+          orderBy: [{ donationDate: "desc" }, { createdAt: "desc" }],
+          select: { donationDate: true },
+        });
+
+        if (previousDonation) {
+          const allowedFrom = addCalendarMonths(previousDonation.donationDate, intervalMonths);
+          if (donationDate < allowedFrom) {
+            const allowedDateStr = allowedFrom.toISOString().slice(0, 10);
+            const error = new Error(
+              `Donor is not eligible to donate until ${allowedDateStr} based on the waiting period for their gender.`
+            );
+            error.status = 400;
+            throw error;
+          }
+        }
+      }
     }
 
     const donation = await tx.donation.create({
@@ -185,6 +309,14 @@ export async function recordCompletedDonation(staffId, input) {
         },
       },
     });
+
+    // 4. Mark the appointment as COMPLETED so blood cannot be drawn again for this slot
+    if (matchingAppointment && tx.appointment?.update) {
+      await tx.appointment.update({
+        where: { id: matchingAppointment.id },
+        data: { status: "COMPLETED" },
+      });
+    }
 
     if (values.accepted) {
       const inventoryRow = await tx.inventory.upsert({

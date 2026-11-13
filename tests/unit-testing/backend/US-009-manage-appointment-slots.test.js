@@ -11,6 +11,8 @@ const findMany = jest.fn();
 const create = jest.fn();
 const findUnique = jest.fn();
 const deleteSlot = jest.fn();
+const approvalFindMany = jest.fn();
+const approvalCreate = jest.fn();
 
 // Mock Prisma client singleton
 jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
@@ -21,6 +23,10 @@ jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
       findUnique,
       delete: deleteSlot,
     },
+    operationApproval: {
+      findMany: approvalFindMany,
+      create: approvalCreate,
+    },
   },
 }));
 
@@ -29,12 +35,17 @@ const {
   deleteAppointmentSlot,
   getAvailableSlots,
 } = await import("../../../backend/src/services/appointment-slot.service.js");
+const {
+  submitOperationProposal,
+} = await import("../../../backend/src/services/operation-approval.service.js");
 
 beforeEach(() => {
   findMany.mockReset();
   create.mockReset();
   findUnique.mockReset();
   deleteSlot.mockReset();
+  approvalFindMany.mockReset();
+  approvalCreate.mockReset();
 });
 
 describe("US-009 manage appointment slots", () => {
@@ -104,5 +115,104 @@ describe("US-009 manage appointment slots", () => {
       message: "This slot has appointment records and cannot be deleted.",
     });
     expect(deleteSlot).not.toHaveBeenCalled();
+  });
+
+  test("deduplicates proposal when a deletion for the same slot is already pending", async () => {
+    const existingPending = {
+      id: "approval-existing",
+      action: "DELETE_SLOT",
+      status: "PENDING",
+      payload: { slotId: "slot-target" },
+    };
+    approvalFindMany.mockResolvedValue([existingPending]);
+
+    const result = await submitOperationProposal("staff-1", "DELETE_SLOT", { slotId: "slot-target" });
+
+    expect(result).toBe(existingPending);
+    expect(approvalCreate).not.toHaveBeenCalled();
+    expect(findUnique).not.toHaveBeenCalled();
+  });
+
+  test("rejects creating duplicate or overlapping slot on the same date", async () => {
+    findMany.mockResolvedValue([
+      {
+        id: "slot-existing",
+        date: "2027-06-04",
+        startTime: "10:00",
+        endTime: "11:00",
+        maxCapacity: 5,
+      },
+    ]);
+
+    await expect(
+      createAppointmentSlot({
+        date: "2027-06-04",
+        startTime: "10:00",
+        endTime: "11:00",
+        maxCapacity: 5,
+      })
+    ).rejects.toMatchObject({
+      status: 409,
+      message: "An appointment slot already exists or overlaps with this time window on the selected date.",
+    });
+
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("rejects staff proposal when slot already exists or coincides on that date", async () => {
+    findMany.mockResolvedValue([
+      {
+        id: "slot-existing",
+        date: "2027-06-04",
+        startTime: "10:00",
+        endTime: "11:00",
+        maxCapacity: 5,
+      },
+    ]);
+
+    await expect(
+      submitOperationProposal("staff-1", "CREATE_SLOT", {
+        date: "2027-06-04",
+        startTime: "10:00",
+        endTime: "11:00",
+        maxCapacity: 5,
+      })
+    ).rejects.toMatchObject({
+      status: 409,
+      message: "An appointment slot already exists or overlaps with this time window on the selected date.",
+    });
+
+    expect(approvalCreate).not.toHaveBeenCalled();
+  });
+
+  test("rejects staff proposal when a coincident slot creation proposal is already pending", async () => {
+    findMany.mockResolvedValue([]);
+    approvalFindMany.mockResolvedValue([
+      {
+        id: "approval-pending",
+        action: "CREATE_SLOT",
+        status: "PENDING",
+        payload: {
+          date: "2027-06-04",
+          startTime: "10:00",
+          endTime: "11:00",
+          maxCapacity: 5,
+        },
+      },
+    ]);
+
+    await expect(
+      submitOperationProposal("staff-1", "CREATE_SLOT", {
+        date: "2027-06-04",
+        startTime: "10:30",
+        endTime: "11:30",
+        maxCapacity: 5,
+      })
+    ).rejects.toMatchObject({
+      status: 409,
+      message: "An appointment slot proposal already exists or overlaps with this time window on the selected date.",
+    });
+
+    expect(approvalCreate).not.toHaveBeenCalled();
   });
 });

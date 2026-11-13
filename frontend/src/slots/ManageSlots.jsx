@@ -78,6 +78,20 @@ export function ManageSlots({ userRole = "STAFF", refreshKey = 0 }) {
     setSubmitting(true);
     setMessage(null);
 
+    const hasOverlap = slots.some((slot) => {
+      if (slot.date !== formData.date) return false;
+      return formData.startTime < slot.endTime && formData.endTime > slot.startTime;
+    });
+
+    if (hasOverlap) {
+      setMessage({
+        type: "error",
+        text: "An appointment slot already exists or overlaps with this time window on the selected date.",
+      });
+      setSubmitting(false);
+      return;
+    }
+
     try {
       const response = await fetch("/api/v1/appointment-slots", {
         method: "POST",

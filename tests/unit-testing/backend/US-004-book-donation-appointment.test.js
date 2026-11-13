@@ -231,4 +231,22 @@ describe("US-004 book donation appointment", () => {
       select: { donationDate: true },
     }));
   });
+
+  test("rejects booking a slot whose date falls before the gender waiting period", async () => {
+    prepareSuccessfulBooking();
+    findDonor.mockResolvedValue(donor({ gender: "MALE" }));
+    findDonation.mockResolvedValue({ donationDate: new Date("2026-08-10T00:00:00.000Z") });
+    findUnique.mockResolvedValue({
+      id: "slot-early",
+      date: "2026-10-01",
+      startTime: "09:00",
+      isAvailable: true,
+      bookedCount: 0,
+      maxCapacity: 10,
+    });
+
+    await expect(bookAppointment("donor-1", { slotId: "slot-early", weightKg: 60 }))
+      .rejects.toMatchObject({ status: 400, message: expect.stringContaining("2026-11-10") });
+    expect(createAppointment).not.toHaveBeenCalled();
+  });
 });
