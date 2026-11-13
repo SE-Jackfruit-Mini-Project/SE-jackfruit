@@ -24,7 +24,7 @@ const BLOOD_GROUPS = [
  * @component
  * @returns {JSX.Element} Rendered submission form and request history table.
  */
-export function BloodRequests() {
+export function BloodRequests({ refreshKey = 0 } = {}) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -40,7 +40,7 @@ export function BloodRequests() {
 
   useEffect(() => {
     void fetchRequests();
-  }, []);
+  }, [refreshKey]);
 
   /**
    * Fetches the hospital requester's submitted blood requests.

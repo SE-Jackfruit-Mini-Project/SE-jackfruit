@@ -30,6 +30,11 @@ import { AllocateRequests } from "./inventory/AllocateRequests.jsx";
 import { BloodAvailability } from "./inventory/BloodAvailability.jsx";
 import { RecordDonation } from "./donations/RecordDonation.jsx";
 import { ManageInventory } from "./inventory/ManageInventory.jsx";
+import { ManageUsers } from "./admin/ManageUsers.jsx";
+import { DonorInformation } from "./donors/DonorInformation.jsx";
+import { BookAppointment } from "./appointments/BookAppointment.jsx";
+import { ManageAppointments } from "./appointments/ManageAppointments.jsx";
+import { EligibilityPage } from "./eligibility/EligibilityPage.jsx";
 import { ManageSlots } from "./slots/ManageSlots.jsx";
 
 function render(Component, props = {}) {
@@ -48,18 +53,19 @@ function text(tree) {
   if (tree && typeof tree === "object") return text(tree.props?.children);
   return tree == null ? "" : String(tree);
 }
-const reply = (body, ok = true) => ({ ok, json: async () => body });
+const reply = (body, ok = true) => ({ ok, status: ok ? 200 : 401, json: async () => body });
 const submitEvent = { preventDefault() {} };
 const requestItem = { id: "request-1", hospitalName: "City Hospital", bloodGroup: "A_POSITIVE", units: 1, urgency: "NORMAL", status: "ALLOCATED", createdAt: "2026-11-13" };
 const settle = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
 
 beforeEach(() => {
+  vi.useFakeTimers();
   hooks.values = [];
   hooks.navigate.mockReset();
   vi.stubGlobal("fetch", vi.fn());
   vi.stubGlobal("window", { dispatchEvent: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn() });
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe("request tracking", () => {
   test.each([BloodRequests, ReviewRequests])("failed history loads show an error rather than an empty list", async (Component) => {
@@ -201,5 +207,72 @@ describe("operational decisions and dashboard refresh", () => {
     await settle();
     expect(render(Dashboard)).toBeNull();
     expect(hooks.navigate).toHaveBeenCalledWith("/login");
+  });
+});
+
+
+describe("local consistency audit regressions", () => {
+  test("service failures show a retry state without pretending the user logged out", async () => {
+    fetch.mockResolvedValue({ ok: false, status: 500 });
+    render(Dashboard); hooks.effects[0](); await settle();
+    expect(text(render(Dashboard))).toContain("Could not reach the service");
+    expect(hooks.navigate).not.toHaveBeenCalled();
+  });
+  test("session polling replaces the dashboard after an administrator changes the role", async () => {
+    fetch.mockResolvedValue(reply({ user: { id: "user-1", role: "DONOR" } }));
+    render(Dashboard); const cleanup = hooks.effects[0](); await settle();
+    fetch.mockResolvedValue(reply({ user: { id: "user-1", role: "ADMIN" } }));
+    await vi.advanceTimersByTimeAsync(15000); await settle();
+    expect(find(render(Dashboard), ManageUsers)).toBeDefined(); cleanup();
+  });
+  test("a failed user directory load is visible", async () => {
+    fetch.mockRejectedValue(new Error("Server unavailable"));
+    render(ManageUsers, { currentAdminId: "admin-1" }); hooks.effects[0](); await settle();
+    expect(text(render(ManageUsers, { currentAdminId: "admin-1" }))).toContain("Server unavailable");
+  });
+  test("role changes notify dependent donor panels and block overlapping updates", async () => {
+    const user = { id: "user-1", fullName: "Demo", email: "demo@example.test", role: "DONOR", isActive: true };
+    const onChanged = vi.fn();
+    fetch.mockResolvedValue(reply({ users: [user] }));
+    render(ManageUsers, { currentAdminId: "admin-1", onChanged }); hooks.effects[0](); await settle();
+    let complete;
+    fetch.mockReturnValueOnce(new Promise(resolve => { complete = resolve; }));
+    const select = find(render(ManageUsers, { currentAdminId: "admin-1", onChanged }), "select");
+    const first = select.props.onChange({ target: { value: "STAFF" } });
+    select.props.onChange({ target: { value: "ADMIN" } });
+    expect(fetch).toHaveBeenCalledTimes(2);
+    complete(reply({ message: "Updated" })); await first;
+    expect(onChanged).toHaveBeenCalledTimes(1);
+  });
+  test("booking load failures are visible", async () => {
+    fetch.mockResolvedValue(reply({ message: "Unavailable" }, false));
+    const props = { donor: { dateOfBirth: "2000-01-01", gender: "MALE" } };
+    render(BookAppointment, props); hooks.effects[0](); await settle();
+    expect(text(render(BookAppointment, props))).toContain("Could not load appointment data");
+  });
+  test("booking and cancellation notify both appointment panels", async () => {
+    fetch.mockResolvedValue(reply({ user: { id: "donor-1", role: "DONOR", dateOfBirth: "2000-01-01", gender: "MALE", bloodGroup: "O_POSITIVE" } }));
+    render(Dashboard); const cleanup = hooks.effects[0](); await settle();
+    let tree = render(Dashboard);
+    find(tree, BookAppointment).props.onBooked();
+    tree = render(Dashboard);
+    expect(find(tree, ManageAppointments).props.refreshKey).toBe(1);
+    find(tree, ManageAppointments).props.onChanged();
+    expect(find(render(Dashboard), BookAppointment).props.refreshKey).toBe(2); cleanup();
+  });
+  test("user changes refresh the staff donor directory and intake options", async () => {
+    fetch.mockResolvedValue(reply({ user: { id: "admin-1", role: "ADMIN" } }));
+    render(Dashboard); const cleanup = hooks.effects[0](); await settle();
+    find(render(Dashboard), ManageUsers).props.onChanged();
+    const tree = render(Dashboard);
+    expect(find(tree, DonorInformation).props.refreshKey).toBe(1);
+    expect(find(tree, RecordDonation).props.refreshKey).toBe(1); cleanup();
+  });
+  test("signed-in eligibility navigation returns to dashboard", async () => {
+    fetch.mockResolvedValue(reply({ user: { id: "donor-1" } }));
+    render(EligibilityPage); hooks.effects[0](); await settle();
+    const tree = render(EligibilityPage);
+    expect(text(tree)).toContain("Back to dashboard");
+    expect(text(tree)).not.toContain("Create a donor account");
   });
 });

@@ -28,7 +28,7 @@ const inputStyle = {
  * @component
  * @returns {JSX.Element} Rendered appointment management panel.
  */
-export function ManageAppointments() {
+export function ManageAppointments({ refreshKey = 0, onChanged } = {}) {
   // State for appointment records, available slots, operation pending flags, and error messaging
   const [appointments, setAppointments] = useState([]);
   const [slots, setSlots] = useState([]);
@@ -41,7 +41,7 @@ export function ManageAppointments() {
   // Load appointments and slots when component is mounted
   useEffect(() => {
     void loadData();
-  }, []);
+  }, [refreshKey]);
 
   /**
    * Loads both donor appointments and all available slots from backend services.
@@ -126,6 +126,7 @@ export function ManageAppointments() {
       setMessage({ type: "success", text: result.message });
       setRescheduleId(null);
       await loadData();
+      onChanged?.();
     } catch (error) {
       setMessage({
         type: "error",
@@ -178,6 +179,7 @@ export function ManageAppointments() {
       setRescheduleId(null);
       setSelectedSlotId("");
       await loadData();
+      onChanged?.();
     } catch (error) {
       setMessage({
         type: "error",

@@ -5,7 +5,7 @@
  * booked appointments (US-004 / AC-1 through AC-7).
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 function calculateAge(dateOfBirth, at = new Date()) {
   const birthDate = new Date(dateOfBirth);
@@ -31,8 +31,9 @@ function addCalendarMonths(date, months) {
  * @component
  * @returns {JSX.Element} Rendered booking interface and donor appointment summary.
  */
-export function BookAppointment({ donor }) {
+export function BookAppointment({ donor, refreshKey = 0, onBooked }) {
   // State for available slots, personal appointments, loading states, and form inputs
+  const inFlight = useRef(false);
   const [slots, setSlots] = useState([]);
   const [myAppointments, setMyAppointments] = useState([]);
   const [donationHistory, setDonationHistory] = useState([]);
@@ -101,7 +102,7 @@ export function BookAppointment({ donor }) {
   // Initial data loading on component mount
   useEffect(() => {
     void loadData();
-  }, []);
+  }, [refreshKey]);
 
   /**
    * Fetches available appointment slots and the donor's active appointments in parallel.
@@ -119,6 +120,9 @@ export function BookAppointment({ donor }) {
         fetch("/api/v1/donation-history", { credentials: "include" }),
       ]);
 
+      if (!slotsRes.ok || !apptsRes.ok || !donationsRes.ok) {
+        throw new Error("Could not load appointment data. Please refresh to retry.");
+      }
       if (slotsRes.ok) {
         const slotsData = await slotsRes.json();
         setSlots(slotsData.slots || []);
@@ -132,8 +136,8 @@ export function BookAppointment({ donor }) {
         setDonationHistory(donationsData.donations || []);
         setDonationHistoryLoaded(true);
       }
-    } catch {
-      console.error("Could not fetch appointment data.");
+    } catch (error) {
+      setMessage({ type: "error", text: error.message || "Could not load appointment data. Please refresh to retry." });
     } finally {
       setLoading(false);
     }
@@ -147,6 +151,8 @@ export function BookAppointment({ donor }) {
    * @param {string} slotId - Selected slot identifier.
    */
   async function handleBook(slotId) {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setSubmitting(true);
     setMessage(null);
 
@@ -176,9 +182,11 @@ export function BookAppointment({ donor }) {
       setNotes("");
       setWeightKg("");
       await loadData();
+      onBooked?.();
     } catch {
       setMessage({ type: "error", text: "Network error. Please try again." });
     } finally {
+      inFlight.current = false;
       setSubmitting(false);
     }
   }
@@ -276,7 +284,7 @@ export function BookAppointment({ donor }) {
 
                   <div>
                     {isSelected ? (
-                      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
                         <label style={{ display: "grid", gap: "4px", color: "#51413b", fontSize: "12px" }}>
                           Weight (kg)
                           <input
@@ -307,7 +315,8 @@ export function BookAppointment({ donor }) {
                             borderRadius: "8px",
                             border: "1px solid #e7dcd3",
                             fontSize: "13px",
-                            minWidth: "220px",
+                            minWidth: "0",
+                            width: "min(220px, 100%)",
                           }}
                         />
                         <button
