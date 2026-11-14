@@ -8,6 +8,8 @@ import { Router } from "express";
 import { requireAuth, requireRole } from "../middleware/auth.middleware.js";
 import { bookAppointment, getDonorAppointments } from "../services/appointment.service.js";
 
+import { listStaffAppointments, updateStaffAppointmentStatus } from "../services/staff-appointment.service.js";
+
 export const appointmentRouter = Router();
 
 /**
@@ -64,6 +66,26 @@ appointmentRouter.get("/me", requireAuth, requireRole("DONOR"), async (request, 
     const appointments = await getDonorAppointments(request.session.user.id);
     return response.status(200).json({ appointments });
   } catch (error) {
+    return next(error);
+  }
+});
+
+// Staff operational management (FR-018); donor self-service routes remain separate.
+appointmentRouter.get("/", requireAuth, requireRole("STAFF", "ADMIN"), async (request, response, next) => {
+  try { return response.json(await listStaffAppointments(request.query)); }
+  catch (error) {
+    if (error.name === "ZodError") return response.status(400).json({ message: "Invalid appointment filters." });
+    return next(error);
+  }
+});
+
+appointmentRouter.patch("/:appointmentId/status", requireAuth, requireRole("STAFF", "ADMIN"), async (request, response, next) => {
+  try {
+    const appointment = await updateStaffAppointmentStatus(request.params.appointmentId, request.body);
+    return response.json({ message: "Appointment cancelled.", appointment });
+  } catch (error) {
+    if (error.name === "ZodError") return response.status(400).json({ message: "A valid appointment status is required." });
+    if (error.status) return response.status(error.status).json({ message: error.message });
     return next(error);
   }
 });

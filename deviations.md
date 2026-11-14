@@ -24,7 +24,7 @@ This file records implementation decisions that extend or clarify the frozen SRS
 
 These are implementation additions to the requirements around appointment slot management (US-009), appointment booking and scheduling rules (US-004), appointment lifecycle management (US-013), completed donation recording and interval verification (US-011), stock additions (US-005), inventory status adjustments (US-014), and role permissions (US-002 and US-017). They do not replace or renumber SRS requirements.
 
-The approval workflow is represented in the Prisma schema and exposed through the staff/admin dashboard. Related checks are documented in the VAL-002, VAL-003, and VAL-004 validation notes, the RG, LA and LC regression cases in testplan_document/test_plan-v5.md, and the associated unit and integration suites.
+The approval workflow is represented in the Prisma schema and exposed through the staff/admin dashboard. Related checks are documented in the VAL-002, VAL-003, and VAL-004 validation notes, the RG, LA and LC regression cases in testplan_document/test_plan-v5.docx, and the associated unit and integration suites.
 
 Because the schema adds the `operation_approvals` table and related enums, developers must regenerate Prisma Client and synchronize their local database schema before running this branch. Use the setup commands in the README; do not reset a database containing data you need to keep.
 
@@ -40,7 +40,7 @@ The November 2026 consistency fixes preserve the frozen SRS and SAD and the exis
 | Dashboard updates | Allocation refreshes inventory and the request-review panel. Recording a donation refreshes inventory. Authentication failures redirect to login; service failures show a retry message. | Avoids stale quantities, stale approved request rows, and a donor dashboard flash during login redirection. |
 | Validation tooling | The frontend test launcher imports its existing configuration through Node and Vite builds load configuration natively. | Managed Windows execution can deny esbuild access to ancestor directories during config bundling. The test suites, JSX transformation, and application build remain enabled. CI already uses Node 22. |
 
-Regression coverage and manual acceptance steps are in `testplan_document/test_plan-v5.md`. Existing Word test plans remain historical baselines. The local audit corrections require no additional database schema changes.
+Regression coverage and manual acceptance steps are in `testplan_document/test_plan-v5.docx`. Existing Word test plans remain historical baselines. The local audit corrections require no additional database schema changes.
 
 ## Local consistency audit — 14 November 2026
 
@@ -60,12 +60,12 @@ Use srs_document/srs-v2.docx as the frozen FR register. Earlier RE working notes
 | Authentication, role navigation and current access | FR-002–FR-006, FR-038–FR-040 | US-002 session-refresh cases; frontend regressions |
 | Donor profile and operational directory | FR-008–FR-010 | Profile and user-management local smoke checks |
 | Booking, viewing, rescheduling, cancellation | FR-014–FR-017 | US-004/US-013 suites; local PostgreSQL booking race check |
-| Staff appointment operations and donation intake | FR-018–FR-021; donor linkage FR-012 | US-011 suite; local dated-intake check |
-| Stock addition, quantities, availability and status | FR-022–FR-026 | Inventory suites |
+| Staff appointment operations and donation intake | FR-018–FR-021; donor linkage FR-012 | US-013 and EPIC-02 staff appointment checks; US-011 donation intake; frontend regressions; local PostgreSQL checks |
+| Stock addition, quantities, availability and status | FR-022–FR-026 | Inventory suites; US-014 movement-history checks for FR-024 and the SAD transactions endpoint |
 | Allocation and insufficient-stock protection | FR-027–FR-028, FR-037 | Allocation suites |
 | Request submission, tracking and review | FR-029–FR-036 | Request suites |
 
-TC-041–TC-051 were previously referenced incorrectly; the supplied Word plans end at TC-040. Current regression identifiers are RG-001–RG-014, LA-001–LA-007 and LC-001–LC-005 in the Markdown addendum.
+TC-041–TC-051 were previously referenced incorrectly; the supplied Word plans end at TC-040. Current regression identifiers are RG-001–RG-014, LA-001–LA-007, LC-001–LC-005, SA-001–SA-003, IH-001–IH-002 and UI-001 in testplan_document/test_plan-v5.docx. The latest scoped validation passed 225 backend and 30 frontend automated tests (255 total) plus the production build and local PostgreSQL checks. The 36 added checks stay in existing suites; GitHub CI/SonarCloud for these additions remain pending publication.
 
 ## Implemented API differences from the frozen SAD
 
@@ -78,12 +78,12 @@ These mappings explain implementation differences; they do not edit the SAD cont
 | Rescheduling/cancellation under /api/v1/appointments/:id | PATCH /api/v1/appointment-management/:id/reschedule and /:id/cancel |
 | POST /api/v1/inventory | POST /api/v1/inventory/stock; staff proposals need admin approval |
 | POST /api/v1/inventory/adjustments | PATCH /api/v1/inventory/:bloodGroup; staff proposals need admin approval |
-| GET /api/v1/inventory/transactions | Movements are persisted; no public history endpoint is implemented |
+| GET /api/v1/inventory/transactions | Implemented for staff/admin with blood-group/type filters and bounded pagination; read-only applied movements |
 | GET /api/v1/inventory/availability with group/units parameters | Returns the eight-group catalog; no requested-quantity response contract is implemented |
 | GET /api/v1/requests/me | GET /api/v1/requests/my |
 | PATCH /api/v1/requests/:id/decision | PATCH /api/v1/requests/:id/review |
 | POST /api/v1/requests/:id/allocations | POST /api/v1/allocations/:requestId |
-| Staff GET /api/v1/appointments and PATCH /appointments/:id/status | No general staff appointment-list/status endpoint. Completion occurs through dated donation intake. This remains a design gap. |
+| Staff GET /api/v1/appointments and PATCH /appointments/:id/status | Implemented for staff/admin: filtered, paginated appointment listing and scheduled-to-cancelled status updates with transactional capacity release. Completion remains exclusively through dated donation intake; cancelled records must be booked again. |
 
 ## Transaction corrections verified locally
 
@@ -91,4 +91,4 @@ LC-001: booking reserves capacity with a conditional atomic increment inside the
 
 LC-002/LC-003: donation intake matches the slot date and claims a still-scheduled appointment before recording donation/inventory changes. A lost concurrent claim returns 409 and rolls back. No schema fields or clinical rules are added.
 
-Remaining limitations: concurrent creation of overlapping slots, concurrent intake across separate same-day appointments for one donor, and general staff appointment management need separate review. Browser appearance and scheduling are not certified by automated checks.
+Remaining limitations: concurrent creation of overlapping slots and concurrent intake across separate same-day appointments for one donor need separate review. Browser appearance and scheduling are not certified by automated checks.

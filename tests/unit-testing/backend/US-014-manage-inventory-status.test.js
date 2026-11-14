@@ -17,6 +17,7 @@ import request from "supertest";
 let rows = new Map();
 let movements = [];
 const proposalCreate = jest.fn();
+const movementFindMany = jest.fn();
 
 const tx = {
   inventory: {
@@ -54,6 +55,7 @@ const tx = {
 jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
   prisma: {
     operationApproval: { create: proposalCreate },
+    inventoryMovement: { findMany: movementFindMany },
     $transaction: async (callback) => {
       const snapshot = new Map([...rows].map(([key, row]) => [key, { ...row }]));
       const movementCount = movements.length;
@@ -81,6 +83,8 @@ function appWithUser(user) {
   return app;
 }
 
+const { listInventoryTransactions } = await import("../../../backend/src/services/inventory-history.service.js");
+
 const staff = { id: "u-staff", role: "STAFF" };
 const admin = { id: "u-admin", role: "ADMIN" };
 const patch = (user, group, body) => request(appWithUser(user)).patch(`/api/v1/inventory/${group}`).send(body);
@@ -89,6 +93,7 @@ beforeEach(() => {
   rows = new Map([["A_POSITIVE", { id: "inv-A", bloodGroup: "A_POSITIVE", availableUnits: 10, status: "AVAILABLE" }]]);
   movements = [];
   proposalCreate.mockReset();
+  movementFindMany.mockReset();
 });
 
 describe("PATCH /api/v1/inventory/:bloodGroup", () => {
@@ -172,4 +177,40 @@ describe("PATCH /api/v1/inventory/:bloodGroup", () => {
     expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
     expect(rows.get("A_POSITIVE").availableUnits).toBe(4);
   });
+
+  test("inventory history applies validated filters and bounded pagination", async () => {
+    movementFindMany.mockResolvedValue([{ id: "m1" }, { id: "m2" }, { id: "m3" }]);
+    await expect(listInventoryTransactions({ bloodGroup: "O_NEGATIVE", type: "DONATION", page: "2", limit: "2" }))
+      .resolves.toEqual({ transactions: [{ id: "m1" }, { id: "m2" }], hasMore: true });
+    expect(movementFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { inventory: { bloodGroup: "O_NEGATIVE" }, type: "DONATION" }, skip: 2, take: 3,
+      select: expect.objectContaining({ actor: { select: { fullName: true } } }),
+    }));
+  });
+
+  test.each([{ bloodGroup: "invalid" }, { type: "PENDING" }, { page: "0" }, { limit: "101" }])("rejects invalid history filters %j", async query => {
+    await expect(listInventoryTransactions(query)).rejects.toMatchObject({ name: "ZodError" });
+    expect(movementFindMany).not.toHaveBeenCalled();
+  });
+
+  test.each(["STAFF", "ADMIN"])("%s can read history without changing stock", async role => {
+    movementFindMany.mockResolvedValue([{ id: "m1", delta: -1 }]);
+    const response = await request(appWithUser({ id: "u", role })).get("/api/v1/inventory/transactions");
+    expect(response.status).toBe(200); expect(response.body.transactions).toEqual([{ id: "m1", delta: -1 }]);
+    expect(rows.get("A_POSITIVE").availableUnits).toBe(10); expect(movements).toHaveLength(0);
+  });
+
+  test.each([null, "DONOR", "HOSPITAL_REQUESTER"])("denies inventory history for %s", async role => {
+    const response = await request(appWithUser(role ? { id: "u", role } : null)).get("/api/v1/inventory/transactions");
+    expect(response.status).toBe(role ? 403 : 401); expect(movementFindMany).not.toHaveBeenCalled();
+  });
+
+  test("history route returns 400 for invalid filters and propagates read failure", async () => {
+    const app = appWithUser(staff);
+    app.use((error, _req, res, _next) => res.status(500).json({ message: "Could not read history." }));
+    expect((await request(app).get("/api/v1/inventory/transactions?page=0")).status).toBe(400);
+    movementFindMany.mockRejectedValueOnce(new Error("offline"));
+    expect((await request(app).get("/api/v1/inventory/transactions")).status).toBe(500);
+  });
+
 });

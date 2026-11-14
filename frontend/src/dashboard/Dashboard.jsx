@@ -22,6 +22,8 @@ import { RecordDonation } from "../donations/RecordDonation.jsx";
 import { ManageAppointments } from "../appointments/ManageAppointments.jsx";
 import { DonorInformation } from "../donors/DonorInformation.jsx";
 import { DonationHistory } from "../donations/DonationHistory.jsx";
+import { StaffAppointments } from "../appointments/StaffAppointments.jsx";
+import { InventoryHistory } from "../inventory/InventoryHistory.jsx";
 import { OperationApprovals } from "../admin/OperationApprovals.jsx";
 
 /**
@@ -216,9 +218,18 @@ export function Dashboard() {
             onChanged={() => setInventoryVersion((version) => version + 1)}
           />
 
+          <InventoryHistory refreshKey={inventoryVersion} />
           <ManageSlots userRole={user.role} refreshKey={slotVersion} />
+          <StaffAppointments refreshKey={appointmentVersion + slotVersion} onChanged={() => {
+            setAppointmentVersion(version => version + 1);
+            setSlotVersion(version => version + 1);
+            setDirectoryVersion(version => version + 1);
+          }} />
           <DonorInformation refreshKey={directoryVersion} />
-          <RecordDonation refreshKey={directoryVersion} onRecorded={() => setInventoryVersion((version) => version + 1)} />
+          <RecordDonation refreshKey={directoryVersion} onRecorded={() => {
+            setInventoryVersion(version => version + 1);
+            setAppointmentVersion(version => version + 1);
+          }} />
         </div>
       ) : (
         <>

@@ -296,7 +296,7 @@ Final local validation: 197 backend tests across 23 suites and 22 frontend tests
 
 - Slot-creation overlap checks are sequential application checks. Distinct overlapping windows created concurrently are not protected by a database exclusion constraint.
 - Donation rows have no donor/date unique constraint. Conditional claiming protects the same appointment; concurrent intake against different same-day appointments remains a separate review item.
-- Some planned SAD APIs have different implemented paths; general staff appointment-list/status management and an inventory-movement-history API are not implemented equivalents. These are recorded design gaps, not passed features.
+- Some planned SAD APIs have different implemented paths. At this review stage, general staff appointment-list/status management and inventory-movement history were gaps. The subsequent scoped addition supplies staff/admin appointment listing, cancellation, and read-only movement history; completion remains through dated donation intake.
 - There is no browser appearance, focus or full scheduling certification because the browser inspection runtime could not launch.
 - No current dependency audit, coverage percentage or SonarCloud gate is claimed for the local working tree. Prior passing CI/quality gates do not validate unpublished changes.
 
@@ -314,6 +314,11 @@ The first published revision passed GitHub backend/frontend CI but SonarCloud fl
 
 The unit suites follow one file per user story: 16 backend files and frontend US-008, for 17 story suites. Existing session-refresh cases were consolidated into US-002. Existing frontend workflow checks were moved to frontend/tests/regression/workflow-regressions.test.js and remain included in the configured test command. No application code or test cases were added or removed in this follow-up. The original report sections remain unchanged.
 
-The complete Word version of test plan v5 remains pending; the Markdown addendum is retained until that document is prepared and verified.
-
 Validation after this reorganization: 145 backend unit tests in 16 suites, 19 component tests in 4 suites, 33 integration tests in 2 suites, and 22 frontend tests passed (219 total). The frontend production build also passed. The commands were invoked directly through Node; published CI and SonarCloud results must be checked separately.
+
+
+### Latest scoped validation — staff appointments and inventory history
+
+The scoped addition implements staff/admin appointment listing and cancellation (FR-018; SAD appointments endpoints) and read-only inventory movement history (FR-024; SAD transactions endpoint). Completion remains through dated donation intake. Case groups SA-001–SA-003, IH-001–IH-002 and UI-001 are recorded in testplan_document/test_plan-v5.docx.
+
+Latest local result: 225 backend tests in the same 22 backend suites and 30 frontend tests in the same 2 frontend files passed (255 total), with the frontend production build passing. The 36 additional checks extend existing suites. Local PostgreSQL checks verified query contracts, one-time capacity release, repeated-cancellation protection and rollback; disposable fixtures were removed. The earlier 219-test results above are historical, preceding these additions. No SRS/SAD, schema, or suite organization changes. GitHub CI and SonarCloud for these unpublished additions are not yet verified.

@@ -33,6 +33,7 @@ The backend enforces role and ownership checks. Hiding an action in the UI is no
 - Inventory tracks the eight ABO/Rh blood groups and logs additions, donations, allocations, and adjustments as inventory movements. Status is derived from quantity: `OUT_OF_STOCK` at zero, `LOW` at 1–5 units, and `AVAILABLE` above 5 units.
 - Hospital requests start as `PENDING`. Staff/admin review them; an approved request can be allocated once. Allocation reduces stock and records the movement together.
 - Cancelling an appointment retains it with `CANCELLED` status and releases its slot capacity.
+- Staff and administrators can filter and page through donor appointments in the dashboard, cancel scheduled bookings, and view read-only inventory movement history. Appointment completion remains linked to Record Donation.
 - Staff slot and inventory changes are proposals. A pending proposal has no effect on donor slot availability or blood availability; an administrator must approve it before it is applied. Rejection leaves operational data unchanged.
 - Administrators review pending staff proposals in the **Staff Change Approvals** dashboard section. Staff can view their own submitted proposals and their decision status.
 - Empty appointment slots can be deleted after admin approval. A slot with any appointment records cannot be deleted, so its history is retained. Administrators may create or delete eligible slots directly.
@@ -167,7 +168,7 @@ tests/
 .github/workflows/       GitHub Actions CI configuration
 ```
 
-Frozen SRS/SAD Word copies are in srs_document/ and sad_document/. Historical Word test plans remain in testplan_document/; current regression additions are in test_plan-v5.md. Record implementation differences in deviations.md without rewriting frozen baselines. The local review supplement is docs_own_reference/code_review/STATIC_CODE_REVIEW_REPORT-v2.md.
+Frozen SRS/SAD Word copies are in srs_document/ and sad_document/. Historical Word test plans remain in testplan_document/; current regression additions are in test_plan-v5.docx. Record implementation differences in deviations.md without rewriting frozen baselines. The local review supplement is docs_own_reference/code_review/STATIC_CODE_REVIEW_REPORT-v2.md.
 
 ## Development workflow
 
