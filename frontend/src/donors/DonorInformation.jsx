@@ -59,7 +59,7 @@ const filterStyle = {
  * @component
  * @returns {JSX.Element} Rendered donor directory interface.
  */
-export function DonorInformation() {
+export function DonorInformation({ refreshKey = 0 } = {}) {
   const [donors, setDonors] = useState([]);
   const [selectedDonor, setSelectedDonor] = useState(null);
   const [nameSearch, setNameSearch] = useState("");
@@ -85,6 +85,7 @@ export function DonorInformation() {
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.message || "Could not load donor information.");
       setDonors(result.donors || []);
+      setSelectedDonor(null);
     } catch (loadError) {
       setError(loadError.message);
     } finally {
@@ -115,7 +116,7 @@ export function DonorInformation() {
 
   useEffect(() => {
     void loadDonors();
-  }, []);
+  }, [refreshKey]);
 
   const filteredDonors = donors.filter((donor) => {
     const age = getAge(donor.dateOfBirth);

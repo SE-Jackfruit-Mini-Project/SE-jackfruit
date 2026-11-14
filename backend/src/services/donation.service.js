@@ -93,6 +93,7 @@ export async function getRegisteredDonors() {
       where: {
         donorId: donor.id,
         status: "SCHEDULED",
+        slot: { date: { lte: new Date().toISOString().slice(0, 10) } },
       },
       include: { slot: true },
       orderBy: [{ createdAt: "asc" }],
@@ -223,24 +224,19 @@ export async function recordCompletedDonation(staffId, input) {
       throw error;
     }
 
-    // 1. Verify the donor has an active scheduled appointment
-    let matchingAppointment = null;
-    if (tx.appointment?.findMany) {
-      const donorAppointments = await tx.appointment.findMany({
-        where: {
-          donorId: donor.id,
-        },
-      });
-
-      matchingAppointment = donorAppointments.find(
-        (appt) => !appt.status || appt.status === "SCHEDULED"
-      );
-
-      if (!matchingAppointment && donorAppointments.length > 0) {
-        const error = new Error("This donor does not have an active scheduled appointment slot.");
-        error.status = 400;
-        throw error;
-      }
+    // Match the recorded date to a scheduled appointment before changing any records.
+    const donorAppointments = await tx.appointment.findMany({
+      where: { donorId: donor.id, status: "SCHEDULED" },
+      include: { slot: true },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    });
+    const matchingAppointment = donorAppointments.find(
+      (appointment) => appointment.status === "SCHEDULED" && appointment.slot?.date === values.donationDate
+    );
+    if (!matchingAppointment) {
+      const error = new Error("This donor has no scheduled appointment on the donation date.");
+      error.status = 400;
+      throw error;
     }
 
     // 2. Prevent drawing blood from the same person in the same slot more than once
@@ -283,6 +279,17 @@ export async function recordCompletedDonation(staffId, input) {
       }
     }
 
+    // Claim once; concurrent recordings cannot complete the same appointment twice.
+    const completed = await tx.appointment.updateMany({
+      where: { id: matchingAppointment.id, donorId: donor.id, status: "SCHEDULED" },
+      data: { status: "COMPLETED" },
+    });
+    if (completed.count !== 1) {
+      const error = new Error("This appointment has already changed. Refresh before recording a donation.");
+      error.status = 409;
+      throw error;
+    }
+
     const donation = await tx.donation.create({
       data: {
         donorId: donor.id,
@@ -309,14 +316,6 @@ export async function recordCompletedDonation(staffId, input) {
         },
       },
     });
-
-    // 4. Mark the appointment as COMPLETED so blood cannot be drawn again for this slot
-    if (matchingAppointment && tx.appointment?.update) {
-      await tx.appointment.update({
-        where: { id: matchingAppointment.id },
-        data: { status: "COMPLETED" },
-      });
-    }
 
     if (values.accepted) {
       const inventoryRow = await tx.inventory.upsert({

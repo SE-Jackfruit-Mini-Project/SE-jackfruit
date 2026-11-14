@@ -60,8 +60,8 @@ beforeEach(() => {
   donationFindMany.mockReset();
   donationFindFirst.mockReset().mockResolvedValue(null);
   donationCreate.mockReset();
-  appointmentFindMany.mockReset().mockResolvedValue([{ id: "appointment-1", status: "SCHEDULED" }]);
-  appointmentUpdate.mockReset();
+  appointmentFindMany.mockReset().mockResolvedValue([{ id: "appointment-1", status: "SCHEDULED", slot: { date: "2026-01-15" } }]);
+  appointmentUpdate.mockReset().mockResolvedValue({ count: 1 });
   inventoryUpsert.mockReset();
   inventoryUpdate.mockReset();
   movementCreate.mockReset();
@@ -71,7 +71,7 @@ beforeEach(() => {
     callback({
       user: { findFirst: userFindFirst },
       donation: { create: donationCreate, findFirst: donationFindFirst },
-      appointment: { findMany: appointmentFindMany, update: appointmentUpdate },
+      appointment: { findMany: appointmentFindMany, updateMany: appointmentUpdate },
       inventory: {
         upsert: inventoryUpsert,
         update: inventoryUpdate,
@@ -279,6 +279,7 @@ describe("US-011 record completed blood donation", () => {
 
   test("rejects drawing blood before the gender-based waiting period has elapsed", async () => {
     userFindFirst.mockResolvedValue({ id: "donor-1", bloodGroup: "A_POSITIVE", gender: "MALE" });
+    appointmentFindMany.mockResolvedValue([{ id: "appointment-1", status: "SCHEDULED", slot: { date: "2026-02-01" } }]);
     // First call to donationFindFirst checks same slot (returns null)
     // Second call to donationFindFirst checks previous accepted donation
     donationFindFirst
@@ -302,7 +303,7 @@ describe("US-011 record completed blood donation", () => {
 
   test("marks the scheduled appointment as completed when donation is recorded", async () => {
     userFindFirst.mockResolvedValue({ id: "donor-1", bloodGroup: "O_POSITIVE", gender: "FEMALE" });
-    appointmentFindMany.mockResolvedValue([{ id: "appointment-42", status: "SCHEDULED" }]);
+    appointmentFindMany.mockResolvedValue([{ id: "appointment-42", status: "SCHEDULED", slot: { date: "2026-01-15" } }]);
     donationCreate.mockResolvedValue({ id: "donation-42", accepted: true });
     inventoryUpsert.mockResolvedValue({ id: "inv-1", bloodGroup: "O_POSITIVE", availableUnits: 1, status: "LOW" });
     inventoryUpdate.mockResolvedValue({ id: "inv-1", bloodGroup: "O_POSITIVE", availableUnits: 1, status: "LOW" });
@@ -316,8 +317,26 @@ describe("US-011 record completed blood donation", () => {
     });
 
     expect(appointmentUpdate).toHaveBeenCalledWith({
-      where: { id: "appointment-42" },
+      where: { id: "appointment-42", donorId: "donor-1", status: "SCHEDULED" },
       data: { status: "COMPLETED" },
     });
   });
+});
+
+test("rejects donation dates without a matching scheduled appointment and performs no writes", async () => {
+  userFindFirst.mockResolvedValue({ id: "donor-1", bloodGroup: "O_POSITIVE" });
+  await expect(recordCompletedDonation("staff-1", { donorId: "donor-1", units: 1, donationDate: "2026-01-16", accepted: false })).rejects.toMatchObject({ status: 400 });
+  expect(donationCreate).not.toHaveBeenCalled(); expect(appointmentUpdate).not.toHaveBeenCalled();
+});
+test("completes only the appointment matching the donation date", async () => {
+  userFindFirst.mockResolvedValue({ id: "donor-1", bloodGroup: "O_POSITIVE" });
+  appointmentFindMany.mockResolvedValue([{ id: "wrong", status: "SCHEDULED", slot: { date: "2026-01-14" } }, { id: "right", status: "SCHEDULED", slot: { date: "2026-01-15" } }]);
+  donationCreate.mockResolvedValue({ id: "donation-1" });
+  await recordCompletedDonation("staff-1", { donorId: "donor-1", units: 1, donationDate: "2026-01-15", accepted: false });
+  expect(appointmentUpdate).toHaveBeenCalledWith({ where: { id: "right", donorId: "donor-1", status: "SCHEDULED" }, data: { status: "COMPLETED" } });
+});
+test("a concurrent intake claim prevents duplicate donation and inventory writes", async () => {
+  userFindFirst.mockResolvedValue({ id: "donor-1", bloodGroup: "O_POSITIVE" }); appointmentUpdate.mockResolvedValue({ count: 0 });
+  await expect(recordCompletedDonation("staff-1", { donorId: "donor-1", units: 1, donationDate: "2026-01-15", accepted: true })).rejects.toMatchObject({ status: 409 });
+  expect(donationCreate).not.toHaveBeenCalled(); expect(inventoryUpsert).not.toHaveBeenCalled(); expect(movementCreate).not.toHaveBeenCalled();
 });

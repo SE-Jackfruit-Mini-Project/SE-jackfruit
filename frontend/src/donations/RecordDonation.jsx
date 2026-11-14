@@ -5,7 +5,7 @@
  * recent donation audit history in accordance with US-011 (FR-022).
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 function formatBloodGroup(value) {
   return value?.replace("_POSITIVE", "+").replace("_NEGATIVE", "-") || "Not recorded";
@@ -29,8 +29,9 @@ const inputStyle = {
  * @component
  * @returns {JSX.Element} Rendered donation intake form and recent donations log.
  */
-export function RecordDonation() {
+export function RecordDonation({ onRecorded, refreshKey = 0 }) {
   // State for registered donors, recent donation records, loading flags, and form input
+  const inFlight = useRef(false);
   const [donors, setDonors] = useState([]);
   const [donations, setDonations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +50,7 @@ export function RecordDonation() {
   // Initial data loading on mount
   useEffect(() => {
     void refreshData();
-  }, []);
+  }, [refreshKey]);
 
   /**
    * Refreshes both registered donor options and historical donation records.
@@ -91,7 +92,8 @@ export function RecordDonation() {
       setFormData((previous) => ({
         ...previous,
         donorId:
-          previous.donorId || donorResult.donors?.[0]?.id || "",
+          donorResult.donors?.some(donor => donor.id === previous.donorId)
+              ? previous.donorId : donorResult.donors?.[0]?.id || "",
       }));
     } catch (error) {
       setMessage({
@@ -129,6 +131,8 @@ export function RecordDonation() {
    */
   async function handleSubmit(event) {
     event.preventDefault();
+    if (inFlight.current) return;
+    inFlight.current = true;
     setSubmitting(true);
     setMessage(null);
 
@@ -179,6 +183,7 @@ export function RecordDonation() {
         notes: "",
       });
 
+      onRecorded?.();
       await refreshData();
     } catch {
       setMessage({
@@ -186,6 +191,7 @@ export function RecordDonation() {
         text: "Network error. Please try again.",
       });
     } finally {
+      inFlight.current = false;
       setSubmitting(false);
     }
   }

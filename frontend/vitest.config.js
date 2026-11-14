@@ -1,8 +1,8 @@
 /**
  * @file vitest.config.js
- * @description Vitest test runner configuration for frontend unit test suites.
+ * @description Vitest test runner configuration for frontend story unit tests and workflow regressions.
  * Sets the root directory to repository root and defines test discovery patterns
- * matching `tests/unit-testing/frontend/**\/*.test.js`.
+ * matching the story tests and the separate frontend regression directory.
  */
 
 process.env.FORCE_COLOR = "1";
@@ -23,8 +23,9 @@ const jestLikeReporter = {
 
 export default defineConfig({
   root: "..",
+  esbuild: { jsx: "automatic" },
   test: {
-    include: ["tests/unit-testing/frontend/**/*.test.js"],
+    include: ["tests/unit-testing/frontend/**/*.test.js", "frontend/tests/regression/**/*.test.js"],
     reporters: ["default", jestLikeReporter],
   },
 });

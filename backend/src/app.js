@@ -6,6 +6,7 @@
  */
 
 import express from "express";
+import { syncSessionUser } from "./middleware/session-user.middleware.js";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 
@@ -59,6 +60,8 @@ app.use(
 app.get("/api/v1/health", (_request, response) => {
   response.json({ status: "ok" });
 });
+
+app.use("/api/v1", syncSessionUser);
 
 // Mount domain-specific REST API routers
 app.use("/api/v1/auth", authRouter);

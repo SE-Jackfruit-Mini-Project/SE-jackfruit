@@ -33,6 +33,7 @@ The backend enforces role and ownership checks. Hiding an action in the UI is no
 - Inventory tracks the eight ABO/Rh blood groups and logs additions, donations, allocations, and adjustments as inventory movements. Status is derived from quantity: `OUT_OF_STOCK` at zero, `LOW` at 1–5 units, and `AVAILABLE` above 5 units.
 - Hospital requests start as `PENDING`. Staff/admin review them; an approved request can be allocated once. Allocation reduces stock and records the movement together.
 - Cancelling an appointment retains it with `CANCELLED` status and releases its slot capacity.
+- Staff and administrators can filter and page through donor appointments in the dashboard, cancel scheduled bookings, and view read-only inventory movement history. Appointment completion remains linked to Record Donation.
 - Staff slot and inventory changes are proposals. A pending proposal has no effect on donor slot availability or blood availability; an administrator must approve it before it is applied. Rejection leaves operational data unchanged.
 - Administrators review pending staff proposals in the **Staff Change Approvals** dashboard section. Staff can view their own submitted proposals and their decision status.
 - Empty appointment slots can be deleted after admin approval. A slot with any appointment records cannot be deleted, so its history is retained. Administrators may create or delete eligible slots directly.
@@ -139,12 +140,14 @@ Run from the project root unless noted:
 
 | Command | What it runs |
 |---|---|
-| `npm test` | Backend unit tests, epic component tests, backend integration tests, then frontend unit tests. |
+| `npm test` | Backend unit tests, epic component tests, backend integration tests, then frontend story unit tests and workflow regressions. |
 | `npm run test:backend` | Backend unit tests in `tests/unit-testing/backend`. |
 | `npm run test:component` | Four epic-level backend component suites in `tests/component-testing`. |
 | `npm run test:integration` | Backend integration/system suites in `tests/integration-testing/backend`. |
-| `npm run test:frontend` | Frontend Vitest tests, including `tests/unit-testing/frontend`. |
+| `npm run test:frontend` | Frontend story tests in `tests/unit-testing/frontend` and existing workflow regressions in `frontend/tests/regression`. |
 | `npm --prefix frontend run build` | Creates the frontend production build in `frontend/dist`. |
+
+Unit testing uses one suite file per user story: 16 backend suites and frontend US-008, for 17 story suites. Session-refresh cases are part of US-002. Cross-story frontend workflow regressions are kept separately and remain included in the test command.
 
 The epic component suites exercise the API routes and role-specific behavior with mocked services. They verify that staff slot and inventory changes remain pending proposals while administrators can apply changes or review proposals. The integration suite covers the end-to-end persistence and approval behavior. Backend and frontend dependencies must be installed first. Most automated tests use mocks or synthetic data; do not point test runs at a production database. When the Prisma schema changes, regenerate Prisma Client and run `npm --prefix backend run db:push` against your local database before starting the application. Do not reset a database containing data you want to keep.
 
@@ -165,7 +168,7 @@ tests/
 .github/workflows/       GitHub Actions CI configuration
 ```
 
-The SRS, SAD, and Test Plan submission copies are maintained separately from this repository. Keep them synchronized with approved changes to requirements, implementation, and tests.
+Frozen SRS/SAD Word copies are in srs_document/ and sad_document/. Historical Word test plans remain in testplan_document/; current regression additions are in test_plan-v5.docx. Record implementation differences in deviations.md without rewriting frozen baselines. The local review supplement is docs_own_reference/code_review/STATIC_CODE_REVIEW_REPORT-v2.md.
 
 ## Development workflow
 
