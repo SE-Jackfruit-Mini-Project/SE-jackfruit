@@ -57,7 +57,7 @@ Use srs_document/srs-v2.docx as the frozen FR register. Earlier RE working notes
 
 | Behavior | Frozen SRS IDs | Evidence |
 |---|---|---|
-| Authentication, role navigation and current access | FR-002–FR-006, FR-038–FR-040 | session-user-refresh tests; frontend regressions |
+| Authentication, role navigation and current access | FR-002–FR-006, FR-038–FR-040 | US-002 session-refresh cases; frontend regressions |
 | Donor profile and operational directory | FR-008–FR-010 | Profile and user-management local smoke checks |
 | Booking, viewing, rescheduling, cancellation | FR-014–FR-017 | US-004/US-013 suites; local PostgreSQL booking race check |
 | Staff appointment operations and donation intake | FR-018–FR-021; donor linkage FR-012 | US-011 suite; local dated-intake check |

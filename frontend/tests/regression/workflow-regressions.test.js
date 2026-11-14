@@ -21,21 +21,21 @@ vi.mock("react", async (load) => ({
 }));
 vi.mock("react-router-dom", () => ({ Link: "a", useNavigate: () => hooks.navigate }));
 
-import { BloodRequests } from "./requests/BloodRequests.jsx";
-import { ReviewRequests } from "./requests/ReviewRequests.jsx";
-import { StockEntry } from "./inventory/StockEntry.jsx";
-import { OperationApprovals } from "./admin/OperationApprovals.jsx";
-import { Dashboard } from "./dashboard/Dashboard.jsx";
-import { AllocateRequests } from "./inventory/AllocateRequests.jsx";
-import { BloodAvailability } from "./inventory/BloodAvailability.jsx";
-import { RecordDonation } from "./donations/RecordDonation.jsx";
-import { ManageInventory } from "./inventory/ManageInventory.jsx";
-import { ManageUsers } from "./admin/ManageUsers.jsx";
-import { DonorInformation } from "./donors/DonorInformation.jsx";
-import { BookAppointment } from "./appointments/BookAppointment.jsx";
-import { ManageAppointments } from "./appointments/ManageAppointments.jsx";
-import { EligibilityPage } from "./eligibility/EligibilityPage.jsx";
-import { ManageSlots } from "./slots/ManageSlots.jsx";
+import { BloodRequests } from "../../src/requests/BloodRequests.jsx";
+import { ReviewRequests } from "../../src/requests/ReviewRequests.jsx";
+import { StockEntry } from "../../src/inventory/StockEntry.jsx";
+import { OperationApprovals } from "../../src/admin/OperationApprovals.jsx";
+import { Dashboard } from "../../src/dashboard/Dashboard.jsx";
+import { AllocateRequests } from "../../src/inventory/AllocateRequests.jsx";
+import { BloodAvailability } from "../../src/inventory/BloodAvailability.jsx";
+import { RecordDonation } from "../../src/donations/RecordDonation.jsx";
+import { ManageInventory } from "../../src/inventory/ManageInventory.jsx";
+import { ManageUsers } from "../../src/admin/ManageUsers.jsx";
+import { DonorInformation } from "../../src/donors/DonorInformation.jsx";
+import { BookAppointment } from "../../src/appointments/BookAppointment.jsx";
+import { ManageAppointments } from "../../src/appointments/ManageAppointments.jsx";
+import { EligibilityPage } from "../../src/eligibility/EligibilityPage.jsx";
+import { ManageSlots } from "../../src/slots/ManageSlots.jsx";
 
 function render(Component, props = {}) {
   hooks.cursor = 0;
