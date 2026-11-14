@@ -139,12 +139,14 @@ Run from the project root unless noted:
 
 | Command | What it runs |
 |---|---|
-| `npm test` | Backend unit tests, epic component tests, backend integration tests, then frontend unit tests. |
+| `npm test` | Backend unit tests, epic component tests, backend integration tests, then frontend story unit tests and workflow regressions. |
 | `npm run test:backend` | Backend unit tests in `tests/unit-testing/backend`. |
 | `npm run test:component` | Four epic-level backend component suites in `tests/component-testing`. |
 | `npm run test:integration` | Backend integration/system suites in `tests/integration-testing/backend`. |
-| `npm run test:frontend` | Frontend Vitest tests, including `tests/unit-testing/frontend`. |
+| `npm run test:frontend` | Frontend story tests in `tests/unit-testing/frontend` and existing workflow regressions in `frontend/tests/regression`. |
 | `npm --prefix frontend run build` | Creates the frontend production build in `frontend/dist`. |
+
+Unit testing uses one suite file per user story: 16 backend suites and frontend US-008, for 17 story suites. Session-refresh cases are part of US-002. Cross-story frontend workflow regressions are kept separately and remain included in the test command.
 
 The epic component suites exercise the API routes and role-specific behavior with mocked services. They verify that staff slot and inventory changes remain pending proposals while administrators can apply changes or review proposals. The integration suite covers the end-to-end persistence and approval behavior. Backend and frontend dependencies must be installed first. Most automated tests use mocks or synthetic data; do not point test runs at a production database. When the Prisma schema changes, regenerate Prisma Client and run `npm --prefix backend run db:push` against your local database before starting the application. Do not reset a database containing data you want to keep.
 

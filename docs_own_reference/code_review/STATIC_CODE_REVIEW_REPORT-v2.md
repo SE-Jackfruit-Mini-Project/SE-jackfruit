@@ -308,3 +308,12 @@ This addendum was prepared and validated locally. The user subsequently authoriz
 ### Publication security follow-up
 
 The first published revision passed GitHub backend/frontend CI but SonarCloud flagged a literal placeholder in the disposable database fixture passwordHash field (javascript:S2068). The fixture now generates a random value and hashes it with bcrypt; no known test credential is stored. This was corrected without suppressing the finding or changing quality-gate settings. The final revision must receive its own analysis result.
+
+
+### Test suite organization follow-up
+
+The unit suites follow one file per user story: 16 backend files and frontend US-008, for 17 story suites. Existing session-refresh cases were consolidated into US-002. Existing frontend workflow checks were moved to frontend/tests/regression/workflow-regressions.test.js and remain included in the configured test command. No application code or test cases were added or removed in this follow-up. The original report sections remain unchanged.
+
+The complete Word version of test plan v5 remains pending; the Markdown addendum is retained until that document is prepared and verified.
+
+Validation after this reorganization: 145 backend unit tests in 16 suites, 19 component tests in 4 suites, 33 integration tests in 2 suites, and 22 frontend tests passed (219 total). The frontend production build also passed. The commands were invoked directly through Node; published CI and SonarCloud results must be checked separately.

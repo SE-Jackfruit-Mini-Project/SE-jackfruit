@@ -13,7 +13,7 @@ npm test
 npm --prefix frontend run build
 ```
 
-The frontend runner imports the existing Vitest configuration with Node; the build uses Vite's native config loader. These avoid config bundling attempts to read inaccessible Windows ancestor directories. Test discovery includes the existing eligibility test and `frontend/src/workflow-regressions.test.js`.
+The frontend runner imports the existing Vitest configuration with Node; the build uses Vite's native config loader. These avoid config bundling attempts to read inaccessible Windows ancestor directories. Test discovery includes the existing eligibility test and `frontend/tests/regression/workflow-regressions.test.js`.
 
 ## Regression cases
 
@@ -77,3 +77,10 @@ The reusable real-database test is backend/scripts/check-local-consistency.mjs. 
 These tests do not certify all possible concurrent interleavings, browser layout, or clinical fitness. Concurrent overlapping slot creation, separate same-day appointment intake, and the planned general staff appointment-management interface remain explicitly open in deviations.md. These local results precede publication; GitHub CI and SonarCloud must be checked separately on the final PR commit.
 
 Final local result for this correction: 197 backend + 22 frontend automated tests passed (219 total), frontend production build passed, and the opt-in PostgreSQL regression passed. Tools were invoked directly through Node; this is not a claim that the managed npm wrapper or unpublished GitHub CI/SonarCloud ran successfully.
+
+
+## Test suite organization
+
+Unit tests follow the team standard of one suite per user story: 16 backend story files and frontend US-008, for 17 story suites. Existing session-refresh cases are included in US-002. Existing frontend workflow regressions are classified separately in frontend/tests/regression/workflow-regressions.test.js and still run through npm test. No test cases were added or removed for this reorganization.
+
+This file remains the v5 Markdown addendum. A complete Word version following test_plan-v2.docx is still pending.
