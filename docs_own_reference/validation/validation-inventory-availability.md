@@ -5,6 +5,10 @@
 **Owner:** Vedanth Kiran (PES1UG24CS523)  
 **Requirements covered:** FR-023 to FR-029, related BR-005 and BR-008 to BR-010, and proposed cross-cutting NFR/security requirements listed in Vedanth’s SRS contribution
 
+## Traceability clarification added 14 November 2026
+
+This is a historical requirements-validation plan, not a completed execution report. Its original RE working-file identifiers below differ from the frozen SRS register. For current implementation traceability, use the frozen-SRS mapping in deviations.md and RG/LA/LC cases in testplan_document/test_plan-v5.docx. In the frozen register, accepted donation inventory is FR-021, non-donation stock addition is FR-022, insufficient-stock protection is FR-028, request submission is FR-029, and administration ends at FR-040. No frozen requirement is renumbered. The separate local consistency review records executed checks and open limitations.
+
 ## Objective
 Validate the proposed Blood Inventory and Availability requirements before they are finalized in the Software Requirements Specification (SRS).
 
@@ -78,3 +82,6 @@ FR-023 to FR-029 and BR-005/BR-008 to BR-010 are in the uploaded RE files. NFR-0
 **Date:** TBD  
 **Outcome:** Pending  
 **Related PR:** TBD
+
+
+Current supplemental test-plan coverage: IH-001–IH-002 and UI-001 cover read-only applied inventory movements, role restrictions, filters, pagination, and dashboard refreshes. See testplan_document/test_plan-v5.docx. These checks were added to existing suites; the latest combined local result is 255 automated tests (225 backend + 30 frontend). Earlier planning and execution records remain historical.

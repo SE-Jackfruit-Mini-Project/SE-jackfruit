@@ -22,6 +22,8 @@ import { RecordDonation } from "../donations/RecordDonation.jsx";
 import { ManageAppointments } from "../appointments/ManageAppointments.jsx";
 import { DonorInformation } from "../donors/DonorInformation.jsx";
 import { DonationHistory } from "../donations/DonationHistory.jsx";
+import { StaffAppointments } from "../appointments/StaffAppointments.jsx";
+import { InventoryHistory } from "../inventory/InventoryHistory.jsx";
 import { OperationApprovals } from "../admin/OperationApprovals.jsx";
 
 /**
@@ -37,18 +39,45 @@ export function Dashboard() {
   const [inventoryVersion, setInventoryVersion] = useState(0);
   const [allocationQueueVersion, setAllocationQueueVersion] = useState(0);
   const [slotVersion, setSlotVersion] = useState(0);
+  const [requestVersion, setRequestVersion] = useState(0);
   const navigate = useNavigate();
 
-  // Validate session on mount and redirect unauthenticated users to login
+  const [directoryVersion, setDirectoryVersion] = useState(0);
+  const [appointmentVersion, setAppointmentVersion] = useState(0);
+  const [sessionError, setSessionError] = useState("");
+
   useEffect(() => {
-    fetch("/api/v1/auth/me", { credentials: "include" })
-      .then((res) => {
-        if (!res.ok) throw new Error("Unauthenticated");
-        return res.json();
-      })
-      .then((data) => setUser(data.user))
-      .catch(() => navigate("/login"))
-      .finally(() => setLoading(false));
+    let active = true;
+    let pending = false;
+    async function refreshSession() {
+      if (pending) return;
+      pending = true;
+      try {
+        const response = await fetch("/api/v1/auth/me", { credentials: "include" });
+        if (response.status === 401 || response.status === 403) {
+          if (active) { setUser(null); navigate("/login"); }
+          return;
+        }
+        if (!response.ok) throw new Error("Could not reach the service. Please retry.");
+        const result = await response.json();
+        if (active) { setUser(result.user); setSessionError(""); }
+      } catch {
+        if (active) setSessionError("Could not reach the service. Please retry.");
+      } finally { pending = false; if (active) setLoading(false); }
+    }
+    const refresh = () => {
+      void refreshSession();
+      setInventoryVersion(v => v + 1);
+      setAllocationQueueVersion(v => v + 1);
+      setRequestVersion(v => v + 1);
+      setSlotVersion(v => v + 1);
+      setDirectoryVersion(v => v + 1);
+      setAppointmentVersion(v => v + 1);
+    };
+    void refreshSession();
+    window.addEventListener("focus", refresh);
+    const timer = setInterval(() => void refreshSession(), 15000);
+    return () => { active = false; clearInterval(timer); window.removeEventListener("focus", refresh); };
   }, [navigate]);
 
   /**
@@ -58,14 +87,19 @@ export function Dashboard() {
    * @function handleLogout
    */
   async function handleLogout() {
-    await fetch("/api/v1/auth/logout", {
+    setSessionError("");
+    try {
+    const response = await fetch("/api/v1/auth/logout", {
       method: "POST",
       credentials: "include",
     });
+    if (!response.ok && response.status !== 401) throw new Error();
     navigate("/login");
+    } catch { setSessionError("Could not log out. Please try again."); }
   }
 
   if (loading) return null;
+  if (!user) return sessionError ? <main className="profile-page"><p role="alert">{sessionError}</p><button onClick={() => window.location.reload()}>Retry</button></main> : null;
 
   return (
     <main
@@ -76,6 +110,7 @@ export function Dashboard() {
         margin: "0 auto",
       }}
     >
+      {sessionError && <p className="form-message error" role="alert">{sessionError}</p>}
       <header
         style={{
           display: "flex",
@@ -97,7 +132,7 @@ export function Dashboard() {
           >
             {user?.role === "HOSPITAL_REQUESTER"
               ? "Hospital Portal"
-              : user?.role === "STAFF" || user?.role === "ADMIN"
+              : user?.role === "ADMIN" ? "Admin Portal" : user?.role === "STAFF"
               ? "Staff Portal"
               : "Dashboard"}
           </h2>
@@ -142,8 +177,8 @@ export function Dashboard() {
             gap: "0",
           }}
         >
-          <BloodAvailability />
-          <BloodRequests />
+          <BloodAvailability refreshKey={inventoryVersion} />
+          <BloodRequests refreshKey={requestVersion} />
         </div>
       ) : user?.role === "STAFF" || user?.role === "ADMIN" ? (
         <div
@@ -153,7 +188,7 @@ export function Dashboard() {
             gap: "28px",
           }}
         >
-          {user?.role === "ADMIN" && <ManageUsers currentAdminId={user.id} />}
+          {user?.role === "ADMIN" && <ManageUsers currentAdminId={user.id} refreshKey={directoryVersion} onChanged={() => setDirectoryVersion(v => v + 1)} />}
           <OperationApprovals
             userRole={user.role}
             onDecision={() => {
@@ -162,11 +197,15 @@ export function Dashboard() {
             }}
           />
           <ReviewRequests
+            refreshKey={requestVersion}
             onReviewed={() => setAllocationQueueVersion((version) => version + 1)}
           />
           <AllocateRequests
             refreshKey={allocationQueueVersion}
-            onAllocated={() => setInventoryVersion((version) => version + 1)}
+            onAllocated={() => {
+              setInventoryVersion((version) => version + 1);
+              setRequestVersion((version) => version + 1);
+            }}
           />
           <BloodAvailability refreshKey={inventoryVersion} />
           <StockEntry
@@ -179,9 +218,18 @@ export function Dashboard() {
             onChanged={() => setInventoryVersion((version) => version + 1)}
           />
 
+          <InventoryHistory refreshKey={inventoryVersion} />
           <ManageSlots userRole={user.role} refreshKey={slotVersion} />
-          <DonorInformation />
-          <RecordDonation />
+          <StaffAppointments refreshKey={appointmentVersion + slotVersion} onChanged={() => {
+            setAppointmentVersion(version => version + 1);
+            setSlotVersion(version => version + 1);
+            setDirectoryVersion(version => version + 1);
+          }} />
+          <DonorInformation refreshKey={directoryVersion} />
+          <RecordDonation refreshKey={directoryVersion} onRecorded={() => {
+            setInventoryVersion(version => version + 1);
+            setAppointmentVersion(version => version + 1);
+          }} />
         </div>
       ) : (
         <>
@@ -233,7 +281,7 @@ export function Dashboard() {
           {user?.role === "DONOR" && (
             <>
               {user.dateOfBirth && user.gender && user.bloodGroup ? (
-                <BookAppointment donor={user} />
+                <BookAppointment donor={user} refreshKey={appointmentVersion} onBooked={() => setAppointmentVersion(v => v + 1)} />
               ) : (
                 <section style={{ marginTop: "28px", padding: "24px", background: "#fff", border: "1px solid #e7dcd3", borderRadius: "16px" }}>
                   <h3 style={{ marginTop: 0 }}>Complete your donor profile to book</h3>
@@ -241,8 +289,8 @@ export function Dashboard() {
                   <Link className="dashboard-profile-link" to="/profile">Complete donor profile</Link>
                 </section>
               )}
-              <ManageAppointments />
-              <DonationHistory />
+              <ManageAppointments refreshKey={appointmentVersion} onChanged={() => setAppointmentVersion(v => v + 1)} />
+              <DonationHistory refreshKey={appointmentVersion} />
             </>
           )}
         </>

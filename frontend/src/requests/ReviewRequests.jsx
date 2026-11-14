@@ -5,7 +5,7 @@
  * or rejection in compliance with US-016 (FR-035, FR-036, FR-037).
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 /**
  * ReviewRequests component for staff and admin processing of hospital orders.
@@ -13,16 +13,18 @@ import { useState, useEffect } from "react";
  * @component
  * @returns {JSX.Element} Rendered blood request review interface.
  */
-export function ReviewRequests({ onReviewed }) {
+export function ReviewRequests({ onReviewed, refreshKey = 0 }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [filter, setFilter] = useState("ALL");
   const [processingId, setProcessingId] = useState(null);
   const [message, setMessage] = useState(null);
+  const reviewInFlight = useRef(false);
 
   useEffect(() => {
     void fetchRequests();
-  }, [filter]);
+  }, [filter, refreshKey]);
 
   /**
    * Fetches requests according to currently selected status filter.
@@ -31,15 +33,16 @@ export function ReviewRequests({ onReviewed }) {
    * @function fetchRequests
    */
   async function fetchRequests() {
+    setLoading(true);
+    setLoadError(null);
     try {
       const url = filter === "ALL" ? "/api/v1/requests" : `/api/v1/requests?status=${filter}`;
       const response = await fetch(url, { credentials: "include" });
-      if (response.ok) {
-        const data = await response.json();
-        setRequests(data.requests || []);
-      }
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Could not load blood requests.");
+      setRequests(data.requests || []);
     } catch {
-      console.error("Could not fetch blood requests.");
+      setLoadError("Could not load blood requests. Please refresh to try again.");
     } finally {
       setLoading(false);
     }
@@ -54,6 +57,8 @@ export function ReviewRequests({ onReviewed }) {
    * @param {'APPROVED' | 'REJECTED'} decision - Staff decision.
    */
   async function handleReview(requestId, decision) {
+    if (reviewInFlight.current) return;
+    reviewInFlight.current = true;
     setProcessingId(requestId);
     setMessage(null);
 
@@ -81,6 +86,7 @@ export function ReviewRequests({ onReviewed }) {
     } catch {
       setMessage({ type: "error", text: "Network error. Please try again." });
     } finally {
+      reviewInFlight.current = false;
       setProcessingId(null);
     }
   }
@@ -115,7 +121,7 @@ export function ReviewRequests({ onReviewed }) {
 
         {/* Status Filters */}
         <div style={{ display: "flex", gap: "6px" }}>
-          {["ALL", "PENDING", "APPROVED", "REJECTED"].map((status) => (
+          {["ALL", "PENDING", "APPROVED", "REJECTED", "ALLOCATED"].map((status) => (
             <button
               key={status}
               type="button"
@@ -167,6 +173,8 @@ export function ReviewRequests({ onReviewed }) {
 
       {loading ? (
         <p style={{ color: "#81716a", fontSize: "14px" }}>Loading requests…</p>
+      ) : loadError ? (
+        <div className="form-message error" role="alert">{loadError}</div>
       ) : requests.length === 0 ? (
         <p style={{ color: "#81716a", fontSize: "14px" }}>No blood requests found for this filter.</p>
       ) : (

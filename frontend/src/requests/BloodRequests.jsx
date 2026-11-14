@@ -5,7 +5,7 @@
  * and allocation statuses in compliance with US-007 (FR-017, FR-018).
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const BLOOD_GROUPS = [
   { value: "A_POSITIVE", label: "A+" },
@@ -24,11 +24,13 @@ const BLOOD_GROUPS = [
  * @component
  * @returns {JSX.Element} Rendered submission form and request history table.
  */
-export function BloodRequests() {
+export function BloodRequests({ refreshKey = 0 } = {}) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
+  const submissionInFlight = useRef(false);
   const [formData, setFormData] = useState({
     hospitalName: "",
     bloodGroup: "A_POSITIVE",
@@ -38,7 +40,7 @@ export function BloodRequests() {
 
   useEffect(() => {
     void fetchRequests();
-  }, []);
+  }, [refreshKey]);
 
   /**
    * Fetches the hospital requester's submitted blood requests.
@@ -47,14 +49,15 @@ export function BloodRequests() {
    * @function fetchRequests
    */
   async function fetchRequests() {
+    setLoading(true);
+    setLoadError(null);
     try {
       const response = await fetch("/api/v1/requests/my", { credentials: "include" });
-      if (response.ok) {
-        const data = await response.json();
-        setRequests(data.requests || []);
-      }
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Could not load your requests.");
+      setRequests(data.requests || []);
     } catch {
-      console.error("Could not fetch requests.");
+      setLoadError("Could not load your requests. Please refresh to try again.");
     } finally {
       setLoading(false);
     }
@@ -81,6 +84,8 @@ export function BloodRequests() {
    */
   async function handleSubmit(event) {
     event.preventDefault();
+    if (submissionInFlight.current) return;
+    submissionInFlight.current = true;
     setSubmitting(true);
     setMessage(null);
 
@@ -114,6 +119,7 @@ export function BloodRequests() {
     } catch {
       setMessage({ type: "error", text: "Network error. Please try again." });
     } finally {
+      submissionInFlight.current = false;
       setSubmitting(false);
     }
   }
@@ -239,6 +245,8 @@ export function BloodRequests() {
 
         {loading ? (
           <p style={{ color: "#81716a", fontSize: "14px" }}>Loading your requests…</p>
+        ) : loadError ? (
+          <div className="form-message error" role="alert">{loadError}</div>
         ) : requests.length === 0 ? (
           <p style={{ color: "#81716a", fontSize: "14px" }}>No blood requests submitted yet.</p>
         ) : (
@@ -287,8 +295,8 @@ export function BloodRequests() {
                           borderRadius: "12px",
                           fontSize: "12px",
                           fontWeight: "bold",
-                          background: req.status === "PENDING" ? "#fef3c7" : req.status === "APPROVED" ? "#d1fae5" : "#fee2e2",
-                          color: req.status === "PENDING" ? "#92400e" : req.status === "APPROVED" ? "#065f46" : "#991b1b",
+                          background: req.status === "PENDING" ? "#fef3c7" : req.status === "REJECTED" ? "#fee2e2" : "#d1fae5",
+                          color: req.status === "PENDING" ? "#92400e" : req.status === "REJECTED" ? "#991b1b" : "#065f46",
                         }}
                       >
                         {req.status}

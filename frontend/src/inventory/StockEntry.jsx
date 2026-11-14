@@ -4,7 +4,7 @@
  * external sources (purchases, transfers, stock corrections) in compliance with US-005 (FR-023).
  */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 const BLOOD_GROUPS = [
   { value: "A_POSITIVE", label: "A+" },
@@ -47,6 +47,7 @@ export function StockEntry({ onAdded, userRole = "STAFF" }) {
   const [formData, setFormData] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
+  const submissionInFlight = useRef(false);
 
   /**
    * Updates state on input changes.
@@ -69,6 +70,8 @@ export function StockEntry({ onAdded, userRole = "STAFF" }) {
    */
   async function handleSubmit(event) {
     event.preventDefault();
+    if (submissionInFlight.current) return;
+    submissionInFlight.current = true;
     setSubmitting(true);
     setMessage(null);
 
@@ -89,16 +92,17 @@ export function StockEntry({ onAdded, userRole = "STAFF" }) {
 
       setMessage({
         type: "success",
-        text: userRole === "ADMIN"
+        text: result.inventory
           ? `${result.message} ${BLOOD_GROUPS.find((bg) => bg.value === result.inventory.bloodGroup)?.label} now has ${result.inventory.availableUnits} units.`
           : result.message,
       });
       setFormData(emptyForm);
-      if (userRole === "ADMIN") onAdded?.();
+      if (result.inventory) onAdded?.();
       else window.dispatchEvent(new Event("operation-approval-changed"));
     } catch {
       setMessage({ type: "error", text: "Network error. Please try again." });
     } finally {
+      submissionInFlight.current = false;
       setSubmitting(false);
     }
   }

@@ -9,6 +9,8 @@ import { requireAuth, requireRole } from "../middleware/auth.middleware.js";
 import { addStock, adjustStock, getAvailability } from "../services/inventory.service.js";
 import { submitOperationProposal } from "../services/operation-approval.service.js";
 
+import { listInventoryTransactions } from "../services/inventory-history.service.js";
+
 export const inventoryRouter = Router();
 
 /**
@@ -117,6 +119,15 @@ inventoryRouter.patch("/:bloodGroup", requireAuth, requireRole("STAFF", "ADMIN")
     if (error.name === "InventoryError") {
       return response.status(error.status).json({ message: error.message });
     }
+    return next(error);
+  }
+});
+
+// Read-only audit history, restricted to operational staff and administrators.
+inventoryRouter.get("/transactions", requireAuth, requireRole("STAFF", "ADMIN"), async (request, response, next) => {
+  try { return response.json(await listInventoryTransactions(request.query)); }
+  catch (error) {
+    if (error.name === "ZodError") return response.status(400).json({ message: "Invalid inventory history filters." });
     return next(error);
   }
 });

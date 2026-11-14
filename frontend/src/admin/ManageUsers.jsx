@@ -5,7 +5,7 @@
  * and activate or deactivate accounts with safety guards preventing admin self-lockout (US-017 / FR-038 - FR-042).
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 /** Permitted user roles within the system */
 const PERMITTED_ROLES = [
@@ -23,8 +23,9 @@ const PERMITTED_ROLES = [
  * @param {string} props.currentAdminId - ID of the currently logged-in administrator (used for self-action guards).
  * @returns {JSX.Element} Rendered user management dashboard section.
  */
-export function ManageUsers({ currentAdminId }) {
+export function ManageUsers({ currentAdminId, refreshKey = 0, onChanged }) {
   // Local state for user records, loading indicators, filters, and status messages
+  const mutationInFlight = useRef(false);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -35,7 +36,7 @@ export function ManageUsers({ currentAdminId }) {
   // Initial fetch of system users on component mount
   useEffect(() => {
     void fetchUsers();
-  }, []);
+  }, [refreshKey]);
 
   /**
    * Fetches the complete list of registered system users from the backend administrative API.
@@ -44,14 +45,14 @@ export function ManageUsers({ currentAdminId }) {
    * @function fetchUsers
    */
   async function fetchUsers() {
+    setLoading(true);
     try {
       const response = await fetch("/api/v1/admin/users", { credentials: "include" });
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data.users || []);
-      }
-    } catch {
-      console.error("Failed to fetch system users.");
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Could not load system users.");
+      setUsers(data.users || []);
+    } catch (error) {
+      setMessage({ type: "error", text: error.message || "Could not load system users. Please refresh to retry." });
     } finally {
       setLoading(false);
     }
@@ -66,6 +67,8 @@ export function ManageUsers({ currentAdminId }) {
    * @param {string} newRole - Newly selected role enum string.
    */
   async function handleRoleChange(userId, newRole) {
+    if (mutationInFlight.current) return;
+    mutationInFlight.current = true;
     setUpdatingId(userId);
     setMessage(null);
 
@@ -85,10 +88,12 @@ export function ManageUsers({ currentAdminId }) {
       }
 
       setMessage({ type: "success", text: result.message });
+      onChanged?.();
       await fetchUsers();
     } catch {
       setMessage({ type: "error", text: "Network error while updating role." });
     } finally {
+      mutationInFlight.current = false;
       setUpdatingId(null);
     }
   }
@@ -102,6 +107,8 @@ export function ManageUsers({ currentAdminId }) {
    * @param {boolean} currentStatus - Current active state of the user.
    */
   async function handleStatusToggle(userId, currentStatus) {
+    if (mutationInFlight.current) return;
+    mutationInFlight.current = true;
     setUpdatingId(userId);
     setMessage(null);
 
@@ -121,10 +128,12 @@ export function ManageUsers({ currentAdminId }) {
       }
 
       setMessage({ type: "success", text: result.message });
+      onChanged?.();
       await fetchUsers();
     } catch {
       setMessage({ type: "error", text: "Network error while updating status." });
     } finally {
+      mutationInFlight.current = false;
       setUpdatingId(null);
     }
   }
@@ -284,7 +293,7 @@ export function ManageUsers({ currentAdminId }) {
                     <td style={{ padding: "10px 8px" }}>
                       <select
                         value={u.role}
-                        disabled={isSelf || updatingId === u.id}
+                        disabled={isSelf || updatingId !== null}
                         onChange={(e) => handleRoleChange(u.id, e.target.value)}
                         style={{
                           padding: "4px 8px",
@@ -323,7 +332,7 @@ export function ManageUsers({ currentAdminId }) {
                     <td style={{ padding: "10px 8px" }}>
                       <button
                         type="button"
-                        disabled={isSelf || updatingId === u.id}
+                        disabled={isSelf || updatingId !== null}
                         onClick={() => handleStatusToggle(u.id, u.isActive !== false)}
                         style={{
                           padding: "5px 12px",
@@ -335,7 +344,7 @@ export function ManageUsers({ currentAdminId }) {
                           borderColor: u.isActive !== false ? "#dc2626" : "#16a34a",
                           background: u.isActive !== false ? "#ef4444" : "#22c55e",
                           color: "#fff",
-                          cursor: isSelf ? "not-allowed" : updatingId === u.id ? "wait" : "pointer",
+                          cursor: isSelf ? "not-allowed" : updatingId !== null ? "wait" : "pointer",
                           opacity: isSelf ? 0.5 : 1,
                         }}
                         title={isSelf ? "Cannot deactivate your own account" : ""}

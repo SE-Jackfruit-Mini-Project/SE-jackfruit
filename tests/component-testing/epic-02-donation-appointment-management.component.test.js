@@ -2,6 +2,10 @@ import { jest } from "@jest/globals";
 import express from "express";
 import request from "supertest";
 
+const listStaffAppointments = jest.fn();
+const updateStaffAppointmentStatus = jest.fn();
+jest.unstable_mockModule("../../backend/src/services/staff-appointment.service.js", () => ({ listStaffAppointments, updateStaffAppointmentStatus }));
+
 const createAppointmentSlot = jest.fn();
 const getAvailableSlots = jest.fn();
 const getAllSlots = jest.fn();
@@ -127,4 +131,31 @@ describe("EPIC-02 Donation and Appointment Management component", () => {
     expect(denied.status).toBe(403);
     expect(recordCompletedDonation).toHaveBeenCalledWith("staff-1", payload);
   });
+
+  test.each(["STAFF", "ADMIN"])("%s can list appointments and cancel through status API", async role => {
+    listStaffAppointments.mockResolvedValue({ appointments: [{ id: "a1" }], hasMore: false });
+    updateStaffAppointmentStatus.mockResolvedValue({ id: "a1", status: "CANCELLED" });
+    const app = createApp({ id: "operator", role });
+    expect((await request(app).get("/api/v1/appointments?status=SCHEDULED&page=2")).body.appointments).toEqual([{ id: "a1" }]);
+    expect(listStaffAppointments).toHaveBeenCalledWith({ status: "SCHEDULED", page: "2" });
+    const changed = await request(app).patch("/api/v1/appointments/a1/status").send({ status: "CANCELLED" });
+    expect(changed.status).toBe(200); expect(changed.body.appointment.status).toBe("CANCELLED");
+    expect(updateStaffAppointmentStatus).toHaveBeenCalledWith("a1", { status: "CANCELLED" });
+  });
+
+  test.each([null, "DONOR", "HOSPITAL_REQUESTER"])("denies operational appointment APIs for %s", async role => {
+    const app = createApp(role ? { id: "u", role } : null);
+    expect((await request(app).get("/api/v1/appointments")).status).toBe(role ? 403 : 401);
+    expect((await request(app).patch("/api/v1/appointments/a1/status").send({ status: "CANCELLED" })).status).toBe(role ? 403 : 401);
+    expect(updateStaffAppointmentStatus).not.toHaveBeenCalled();
+  });
+
+  test("staff API exposes controlled validation and conflict errors", async () => {
+    const app = createApp({ id: "staff", role: "STAFF" });
+    listStaffAppointments.mockRejectedValueOnce(Object.assign(new Error(), { name: "ZodError" }));
+    expect((await request(app).get("/api/v1/appointments?page=0")).status).toBe(400);
+    updateStaffAppointmentStatus.mockRejectedValueOnce(Object.assign(new Error("Appointment changed"), { status: 409 }));
+    expect((await request(app).patch("/api/v1/appointments/a1/status").send({ status: "CANCELLED" })).status).toBe(409);
+  });
+
 });

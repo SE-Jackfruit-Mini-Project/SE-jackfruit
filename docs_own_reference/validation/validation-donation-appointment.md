@@ -5,6 +5,10 @@
 **Owner:** Pavithra Reddy (PES1UG24CS489)  
 **Requirements covered:** FR-014 to FR-022 and related BR-002 to BR-005
 
+## Traceability clarification added 14 November 2026
+
+This is a historical requirements-validation plan, not a completed execution report. Its original RE working-file identifiers below differ from the frozen SRS register. For current implementation traceability, use the frozen-SRS mapping in deviations.md and RG/LA/LC cases in testplan_document/test_plan-v5.docx. In the frozen register, accepted donation inventory is FR-021, non-donation stock addition is FR-022, insufficient-stock protection is FR-028, request submission is FR-029, and administration ends at FR-040. No frozen requirement is renumbered. The separate local consistency review records executed checks and open limitations.
+
 ## Objective
 
 Validate the proposed Donation and Appointment Management requirements before they are finalized in the Software Requirements Specification (SRS).
@@ -82,3 +86,6 @@ This checklist is a validation plan, not a completed validation report.
 **Date:** TBD  
 **Outcome:** Pending  
 **Related PR:** TBD
+
+
+Current supplemental test-plan coverage: SA-001–SA-003 and UI-001 cover staff appointment listing/cancellation, protected transitions, capacity release, and dashboard refreshes. Completion remains through dated donation intake. See testplan_document/test_plan-v5.docx. These checks were added to existing suites; the latest combined local result is 255 automated tests (225 backend + 30 frontend). Earlier planning and execution records remain historical.

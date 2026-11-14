@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const ACTION_LABELS = {
   CREATE_SLOT: "Create appointment slot",
@@ -27,6 +27,7 @@ export function OperationApprovals({ userRole, onDecision }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
+  const reviewInFlight = useRef(false);
 
   async function loadApprovals() {
     setLoading(true);
@@ -51,6 +52,8 @@ export function OperationApprovals({ userRole, onDecision }) {
   }, []);
 
   async function review(approvalId, decision) {
+    if (reviewInFlight.current) return;
+    reviewInFlight.current = true;
     setBusyId(approvalId);
     setError("");
     try {
@@ -63,10 +66,11 @@ export function OperationApprovals({ userRole, onDecision }) {
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || "Could not review this request.");
       await loadApprovals();
-      if (decision === "APPROVE") onDecision?.(result.approval);
+      onDecision?.(result.approval);
     } catch (reviewError) {
       setError(reviewError.message || "Could not review this request.");
     } finally {
+      reviewInFlight.current = false;
       setBusyId("");
     }
   }
@@ -104,10 +108,10 @@ export function OperationApprovals({ userRole, onDecision }) {
               </div>
               {userRole === "ADMIN" && proposal.status === "PENDING" && (
                 <div style={{ display: "flex", gap: "8px" }}>
-                  <button type="button" disabled={busyId === proposal.id} onClick={() => void review(proposal.id, "APPROVE")}>
+                  <button type="button" disabled={busyId !== ""} onClick={() => void review(proposal.id, "APPROVE")}>
                     {busyId === proposal.id ? "Saving…" : "Approve"}
                   </button>
-                  <button type="button" disabled={busyId === proposal.id} onClick={() => void review(proposal.id, "REJECT")} style={{ background: "#f3ebe4", color: "#862f2b" }}>
+                  <button type="button" disabled={busyId !== ""} onClick={() => void review(proposal.id, "REJECT")} style={{ background: "#f3ebe4", color: "#862f2b" }}>
                     Reject
                   </button>
                 </div>
