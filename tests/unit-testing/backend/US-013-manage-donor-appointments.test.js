@@ -39,6 +39,8 @@ const {
   "../../../backend/src/services/appointment-management.service.js"
 );
 
+const { listStaffAppointments, updateStaffAppointmentStatus } = await import("../../../backend/src/services/staff-appointment.service.js");
+
 /** Helper creating a mock appointment object */
 function makeAppointment() {
   return {
@@ -285,4 +287,52 @@ describe("US-013 manage donor appointments", () => {
     expect(slotFindUnique).not.toHaveBeenCalled();
     expect(slotUpdateMany).not.toHaveBeenCalled();
   });
+
+  test("staff list validates filters, paginates and selects no donor credentials", async () => {
+    appointmentFindMany.mockResolvedValue([{ id: "a1" }, { id: "a2" }, { id: "a3" }]);
+    await expect(listStaffAppointments({ status: "SCHEDULED", page: "2", limit: "2" }))
+      .resolves.toEqual({ appointments: [{ id: "a1" }, { id: "a2" }], hasMore: true });
+    expect(appointmentFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { status: "SCHEDULED" }, skip: 2, take: 3,
+      select: expect.objectContaining({ donor: { select: { id: true, fullName: true, email: true, bloodGroup: true } } }),
+    }));
+  });
+
+  test.each([{ status: "UNKNOWN" }, { page: "0" }, { limit: "101" }])("rejects invalid staff appointment filters %j", async query => {
+    await expect(listStaffAppointments(query)).rejects.toMatchObject({ name: "ZodError" });
+    expect(appointmentFindMany).not.toHaveBeenCalled();
+  });
+
+  test("staff cancellation claims scheduled appointment and releases capacity once", async () => {
+    appointmentFindUnique.mockResolvedValueOnce(makeAppointment()).mockResolvedValueOnce({ id: "appointment-1", status: "CANCELLED", slotId: "old-slot" });
+    appointmentUpdateMany.mockResolvedValue({ count: 1 }); slotUpdateMany.mockResolvedValue({ count: 1 });
+    await expect(updateStaffAppointmentStatus("appointment-1", { status: "CANCELLED" })).resolves.toMatchObject({ status: "CANCELLED" });
+    expect(appointmentUpdateMany).toHaveBeenCalledWith({ where: { id: "appointment-1", status: "SCHEDULED", slotId: "old-slot" }, data: { status: "CANCELLED" } });
+    expect(slotUpdateMany).toHaveBeenCalledTimes(1);
+  });
+
+  test("lost staff cancellation claim never releases capacity", async () => {
+    appointmentFindUnique.mockResolvedValue(makeAppointment()); appointmentUpdateMany.mockResolvedValue({ count: 0 });
+    await expect(updateStaffAppointmentStatus("appointment-1", { status: "CANCELLED" })).rejects.toMatchObject({ status: 409 });
+    expect(slotUpdateMany).not.toHaveBeenCalled();
+  });
+
+  test.each(["COMPLETED", "CANCELLED"])("staff cannot cancel a %s appointment", async status => {
+    appointmentFindUnique.mockResolvedValue({ ...makeAppointment(), status });
+    await expect(updateStaffAppointmentStatus("appointment-1", { status: "CANCELLED" })).rejects.toMatchObject({ status: 409 });
+    expect(appointmentUpdateMany).not.toHaveBeenCalled();
+  });
+
+  test("staff cancellation reports missing appointment and capacity conflicts", async () => {
+    appointmentFindUnique.mockResolvedValueOnce(null);
+    await expect(updateStaffAppointmentStatus("missing", { status: "CANCELLED" })).rejects.toMatchObject({ status: 404 });
+    appointmentFindUnique.mockResolvedValueOnce(makeAppointment()); appointmentUpdateMany.mockResolvedValue({ count: 1 }); slotUpdateMany.mockResolvedValue({ count: 0 });
+    await expect(updateStaffAppointmentStatus("appointment-1", { status: "CANCELLED" })).rejects.toMatchObject({ status: 409 });
+  });
+
+  test.each(["COMPLETED", "SCHEDULED"])("staff cannot bypass donation intake or booking using status %s", async status => {
+    await expect(updateStaffAppointmentStatus("appointment-1", { status })).rejects.toMatchObject({ status: 409 });
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
 });

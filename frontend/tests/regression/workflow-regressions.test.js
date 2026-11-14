@@ -35,6 +35,8 @@ import { DonorInformation } from "../../src/donors/DonorInformation.jsx";
 import { BookAppointment } from "../../src/appointments/BookAppointment.jsx";
 import { ManageAppointments } from "../../src/appointments/ManageAppointments.jsx";
 import { EligibilityPage } from "../../src/eligibility/EligibilityPage.jsx";
+import { StaffAppointments } from "../../src/appointments/StaffAppointments.jsx";
+import { InventoryHistory } from "../../src/inventory/InventoryHistory.jsx";
 import { ManageSlots } from "../../src/slots/ManageSlots.jsx";
 
 function render(Component, props = {}) {
@@ -275,4 +277,77 @@ describe("local consistency audit regressions", () => {
     expect(text(tree)).toContain("Back to dashboard");
     expect(text(tree)).not.toContain("Create a donor account");
   });
+
+  test.each([StaffAppointments, InventoryHistory])("operational read failures show an error and allow refresh", async Component => {
+    fetch.mockRejectedValue(new Error("Service unavailable"));
+    render(Component); hooks.effects[0](); await settle();
+    const tree = render(Component);
+    expect(nodes(tree).some(node => node.props?.role === "alert")).toBe(true);
+    expect(text(tree)).not.toMatch(/No appointments|No movements/);
+    const refresh = nodes(tree).find(node => node.type === "button" && text(node).startsWith("Refresh"));
+    expect(refresh.props.disabled).toBe(false);
+  });
+
+  test("staff cancellation blocks overlapping calls and notifies dependent views", async () => {
+    const appointment = { id: "a1", status: "SCHEDULED", donor: { fullName: "Demo", email: "demo@example.test" }, slot: { date: "2099-01-01", startTime: "10:00", endTime: "11:00" } };
+    const onChanged = vi.fn(); window.confirm = vi.fn(() => true);
+    fetch.mockResolvedValue(reply({ appointments: [appointment], hasMore: false }));
+    render(StaffAppointments, { onChanged }); hooks.effects[0](); await settle();
+    const cancel = nodes(render(StaffAppointments, { onChanged })).find(node => node.type === "button" && text(node) === "Cancel appointment");
+    let complete; fetch.mockReturnValueOnce(new Promise(resolve => { complete = resolve; }));
+    const first = cancel.props.onClick(); await cancel.props.onClick();
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenLastCalledWith("/api/v1/appointments/a1/status", expect.objectContaining({ method: "PATCH", body: JSON.stringify({ status: "CANCELLED" }) }));
+    complete(reply({ appointment: { id: "a1", status: "CANCELLED" } })); await first;
+    expect(onChanged).toHaveBeenCalledTimes(1);
+    expect(text(render(StaffAppointments, { onChanged }))).toContain("Slot capacity has been released");
+  });
+
+  test("failed staff cancellation does not announce success", async () => {
+    const appointment = { id: "a1", status: "SCHEDULED", donor: { fullName: "Demo" }, slot: { date: "2099-01-01", startTime: "10:00", endTime: "11:00" } };
+    const onChanged = vi.fn(); window.confirm = () => true;
+    fetch.mockResolvedValueOnce(reply({ appointments: [appointment] }));
+    render(StaffAppointments, { onChanged }); hooks.effects[0](); await settle();
+    fetch.mockResolvedValueOnce(reply({ message: "Appointment changed" }, false));
+    await nodes(render(StaffAppointments, { onChanged })).find(node => node.type === "button" && text(node) === "Cancel appointment").props.onClick();
+    expect(onChanged).not.toHaveBeenCalled();
+    expect(text(render(StaffAppointments, { onChanged }))).toContain("Appointment changed");
+  });
+
+  test("inventory history shows applied movements and resets pagination when filtering", async () => {
+    fetch.mockResolvedValue(reply({ transactions: [{ id: "m1", inventory: { bloodGroup: "O_NEGATIVE" }, type: "ALLOCATION", delta: -2, createdAt: "2026-11-14T10:00:00Z", actor: { fullName: "Staff" }, reason: "Allocated" }], hasMore: true }));
+    render(InventoryHistory); hooks.effects[0](); await settle();
+    let tree = render(InventoryHistory);
+    expect(text(tree)).toContain("O-"); expect(text(tree)).toContain("-2");
+    nodes(tree).find(node => node.type === "button" && text(node) === "Next movements").props.onClick();
+    render(InventoryHistory); hooks.effects[0](); await settle();
+    expect(fetch).toHaveBeenLastCalledWith("/api/v1/inventory/transactions?page=2", { credentials: "include" });
+    find(render(InventoryHistory), "select").props.onChange({ target: { value: "O_NEGATIVE" } });
+    render(InventoryHistory); hooks.effects[0](); await settle();
+    expect(fetch).toHaveBeenLastCalledWith("/api/v1/inventory/transactions?page=1&bloodGroup=O_NEGATIVE", { credentials: "include" });
+  });
+
+  test.each(["STAFF", "ADMIN"])("%s dashboard links staff appointments and movement history to updates", async role => {
+    fetch.mockResolvedValue(reply({ user: { id: "u1", role } }));
+    render(Dashboard); const cleanup = hooks.effects[0](); await settle();
+    let tree = render(Dashboard);
+    expect(find(tree, InventoryHistory)).toBeDefined();
+    find(tree, StaffAppointments).props.onChanged();
+    tree = render(Dashboard);
+    expect(find(tree, ManageSlots).props.refreshKey).toBe(1);
+    expect(find(tree, RecordDonation).props.refreshKey).toBe(1);
+    find(tree, RecordDonation).props.onRecorded();
+    tree = render(Dashboard);
+    expect(find(tree, InventoryHistory).props.refreshKey).toBe(1);
+    expect(find(tree, StaffAppointments).props.refreshKey).toBe(3);
+    cleanup();
+  });
+
+  test("donor dashboard never renders operational appointment/history panels", async () => {
+    fetch.mockResolvedValue(reply({ user: { id: "donor", role: "DONOR" } }));
+    render(Dashboard); const cleanup = hooks.effects[0](); await settle();
+    const tree = render(Dashboard);
+    expect(find(tree, StaffAppointments)).toBeUndefined(); expect(find(tree, InventoryHistory)).toBeUndefined(); cleanup();
+  });
+
 });
