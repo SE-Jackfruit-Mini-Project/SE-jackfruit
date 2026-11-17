@@ -1,8 +1,8 @@
-# Continuous Integration Workflow for SE-Jackfruit
-# Validates backend unit, component, and system integration suites plus frontend tests and build
-# on pushes and pull requests targeting the main branch.
+# Continuous Integration & Continuous Deployment (CI/CD) Workflow for SE-Jackfruit
+# Validates backend tests, frontend tests and build on pull requests and pushes,
+# and automatically triggers production deployment to Render when merged to main.
 
-name: Test and build
+name: CI/CD Pipeline
 
 on:
   push:
@@ -51,6 +51,9 @@ jobs:
     needs: [backend, frontend]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    environment:
+      name: Production
+      url: ${{ vars.PRODUCTION_URL || 'https://se-jackfruit.onrender.com' }}
     steps:
       - name: Trigger Render Deploy Hook
         env:
@@ -63,3 +66,14 @@ jobs:
           else
             echo "RENDER_DEPLOY_HOOK_URL secret is not set yet. Skipping automatic deployment hook."
           fi
+
+      - name: Publish Deployment URL to Job Summary
+        run: |
+          TARGET_URL="${{ vars.PRODUCTION_URL || 'https://se-jackfruit.onrender.com' }}"
+          echo "## 🚀 Production Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Your application is deployed and live at:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🌐 [Open Deployed Application]($TARGET_URL)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`$TARGET_URL\`" >> $GITHUB_STEP_SUMMARY
