@@ -33,10 +33,20 @@ const PgStore = connectPgSimple(session);
 
 export const app = express();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const frontendDist = path.resolve(__dirname, "../../frontend/dist");
+
 app.disable('x-powered-by');
 
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
+}
+
+// Serve production static frontend assets before session middleware
+// to prevent serving session cookies on static files (SonarQube S8441)
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
 }
 
 // Global request body parser with payload size restriction for security
@@ -85,13 +95,8 @@ app.use("/api/v1/donor-information", donorInformationRouter);
 app.use("/api/v1/admin", adminRouter);
 app.use("/api/v1/operation-approvals", operationApprovalRouter);
 
-// Serve production static frontend if built
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const frontendDist = path.resolve(__dirname, "../../frontend/dist");
-
+// Single Page Application (SPA) client-side routing fallback
 if (fs.existsSync(frontendDist)) {
-  app.use(express.static(frontendDist));
   app.get("*", (request, response, next) => {
     if (request.path.startsWith("/api/")) return next();
     response.sendFile(path.join(frontendDist, "index.html"));
