@@ -44,3 +44,22 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm test
       - run: npm run build
+
+  # Continuous Deployment: triggers production deployment on Render when all tests pass on main
+  deploy:
+    name: Deploy to Production
+    needs: [backend, frontend]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render Deploy Hook
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -n "$RENDER_DEPLOY_HOOK" ]; then
+            echo "Triggering deployment on Render..."
+            curl -f -s -X POST "$RENDER_DEPLOY_HOOK"
+            echo "Production deployment initiated."
+          else
+            echo "RENDER_DEPLOY_HOOK_URL secret is not set yet. Skipping automatic deployment hook."
+          fi
