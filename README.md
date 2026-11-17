@@ -151,9 +151,9 @@ Unit testing uses one suite file per user story: 16 backend suites and frontend 
 
 The epic component suites exercise the API routes and role-specific behavior with mocked services. They verify that staff slot and inventory changes remain pending proposals while administrators can apply changes or review proposals. The integration suite covers the end-to-end persistence and approval behavior. Backend and frontend dependencies must be installed first. Most automated tests use mocks or synthetic data; do not point test runs at a production database. When the Prisma schema changes, regenerate Prisma Client and run `npm --prefix backend run db:push` against your local database before starting the application. Do not reset a database containing data you want to keep.
 
-### CI
+### CI/CD
 
-The GitHub Actions workflow at `.github/workflows/ci.yml` runs on pushes and pull requests targeting `main`. It installs backend and frontend dependencies, runs backend unit, component, and integration tests, then runs frontend tests and a production build. SonarCloud is an additional check only when its repository integration and workflow configuration are active.
+The GitHub Actions workflow at `.github/workflows/cicd.yml` runs on pushes and pull requests targeting `main`. It installs backend and frontend dependencies, runs backend unit, component, and integration tests, runs frontend tests and a production build, and automatically triggers production deployment to Render when merged to `main`. SonarCloud is an additional check only when its repository integration and workflow configuration are active.
 
 ## Repository layout
 
@@ -165,7 +165,7 @@ tests/
   unit-testing/          Backend and frontend unit suites
   component-testing/     Four epic-level backend component suites
   integration-testing/  Backend workflow and inventory integration suites
-.github/workflows/       GitHub Actions CI configuration
+.github/workflows/       GitHub Actions CI/CD configuration
 ```
 
 Frozen SRS/SAD Word copies are in srs_document/ and sad_document/. Historical Word test plans remain in testplan_document/; current regression additions are in test_plan-v5.docx. Record implementation differences in deviations.md without rewriting frozen baselines. The local review supplement is docs_own_reference/code_review/STATIC_CODE_REVIEW_REPORT-v2.md.
