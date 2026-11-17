@@ -6,6 +6,9 @@
  */
 
 import express from "express";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import fs from "node:fs";
 import { syncSessionUser } from "./middleware/session-user.middleware.js";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
@@ -30,7 +33,21 @@ const PgStore = connectPgSimple(session);
 
 export const app = express();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const frontendDist = path.resolve(__dirname, "../../frontend/dist");
+
 app.disable('x-powered-by');
+
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
+// Serve production static frontend assets before session middleware
+// to prevent serving session cookies on static files (SonarQube S8441)
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+}
 
 // Global request body parser with payload size restriction for security
 app.use(express.json({ limit: "16kb" }));
@@ -77,6 +94,14 @@ app.use("/api/v1/appointment-management", appointmentManagementRouter);
 app.use("/api/v1/donor-information", donorInformationRouter);
 app.use("/api/v1/admin", adminRouter);
 app.use("/api/v1/operation-approvals", operationApprovalRouter);
+
+// Single Page Application (SPA) client-side routing fallback
+if (fs.existsSync(frontendDist)) {
+  app.get("*", (request, response, next) => {
+    if (request.path.startsWith("/api/")) return next();
+    response.sendFile(path.join(frontendDist, "index.html"));
+  });
+}
 
 // Centralized error-handling middleware
 app.use((error, _request, response, _next) => {

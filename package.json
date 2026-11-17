@@ -4,6 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build:frontend": "npm --prefix frontend run build",
+    "build:backend": "npm --prefix backend run db:generate",
+    "build": "npm run build:backend && npm run build:frontend",
+    "start": "npm --prefix backend start",
+    "postinstall": "npm --prefix backend install && npm --prefix frontend install",
     "test:backend": "npm --prefix backend test",
     "test:component": "npm --prefix backend run test:component",
     "test:integration": "npm --prefix backend run test:integration",
