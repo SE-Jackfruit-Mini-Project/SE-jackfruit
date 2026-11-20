@@ -12,6 +12,7 @@
     "db:seed": "node prisma/seed.js",
     "db:migrate": "prisma migrate dev",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --roots ../tests/unit-testing/backend --runInBand --colors",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --roots ../tests/unit-testing/backend ../tests/component-testing ../tests/integration-testing/backend --runInBand --colors --coverage",
     "test:component": "node --experimental-vm-modules node_modules/jest/bin/jest.js --roots ../tests/component-testing --runInBand --colors",
     "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js --roots ../tests/integration-testing/backend --runInBand --colors"
   },
@@ -32,7 +33,16 @@
   "jest": {
     "testEnvironment": "node",
     "transform": {},
-    "modulePaths": ["<rootDir>/node_modules"]
+    "modulePaths": ["<rootDir>/node_modules"],
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/server.js"
+    ],
+    "coverageReporters": [
+      "text",
+      "lcov"
+    ],
+    "coverageDirectory": "coverage"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
