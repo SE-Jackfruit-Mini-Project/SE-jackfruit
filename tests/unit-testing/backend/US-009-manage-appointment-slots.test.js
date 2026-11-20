@@ -12,7 +12,10 @@ const create = jest.fn();
 const findUnique = jest.fn();
 const deleteSlot = jest.fn();
 const approvalFindMany = jest.fn();
+const approvalFindUnique = jest.fn();
 const approvalCreate = jest.fn();
+const approvalUpdateMany = jest.fn();
+const transaction = jest.fn();
 
 // Mock Prisma client singleton
 jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
@@ -25,8 +28,11 @@ jest.unstable_mockModule("../../../backend/src/utils/prisma.js", () => ({
     },
     operationApproval: {
       findMany: approvalFindMany,
+      findUnique: approvalFindUnique,
       create: approvalCreate,
+      updateMany: approvalUpdateMany,
     },
+    $transaction: transaction,
   },
 }));
 
@@ -37,6 +43,8 @@ const {
 } = await import("../../../backend/src/services/appointment-slot.service.js");
 const {
   submitOperationProposal,
+  listOperationApprovals,
+  decideOperationApproval,
 } = await import("../../../backend/src/services/operation-approval.service.js");
 
 beforeEach(() => {
@@ -45,7 +53,26 @@ beforeEach(() => {
   findUnique.mockReset();
   deleteSlot.mockReset();
   approvalFindMany.mockReset();
+  approvalFindUnique.mockReset();
   approvalCreate.mockReset();
+  approvalUpdateMany.mockReset();
+  transaction.mockReset();
+
+  transaction.mockImplementation(async (callback) =>
+    callback({
+      appointmentSlot: {
+        findMany,
+        create,
+        findUnique,
+        delete: deleteSlot,
+      },
+      operationApproval: {
+        findMany: approvalFindMany,
+        findUnique: approvalFindUnique,
+        updateMany: approvalUpdateMany,
+      },
+    })
+  );
 });
 
 describe("US-009 manage appointment slots", () => {
@@ -214,5 +241,101 @@ describe("US-009 manage appointment slots", () => {
     });
 
     expect(approvalCreate).not.toHaveBeenCalled();
+  });
+
+  test("submitting DELETE_SLOT returns existing pending proposal if already submitted", async () => {
+    const existing = { id: "prop-del", action: "DELETE_SLOT", payload: { slotId: "slot-dup" } };
+    approvalFindMany.mockResolvedValue([existing]);
+    const res = await submitOperationProposal("staff-1", "DELETE_SLOT", { slotId: "slot-dup" });
+    expect(res).toEqual(existing);
+    expect(findUnique).not.toHaveBeenCalled();
+  });
+
+  test("submitting DELETE_SLOT rejects when slot does not exist or has appointments", async () => {
+    approvalFindMany.mockResolvedValue([]);
+    findUnique.mockResolvedValueOnce(null);
+    await expect(submitOperationProposal("staff-1", "DELETE_SLOT", { slotId: "slot-missing" })).rejects.toMatchObject({ status: 404 });
+
+    findUnique.mockResolvedValueOnce({ id: "slot-busy", _count: { appointments: 1 } });
+    await expect(submitOperationProposal("staff-1", "DELETE_SLOT", { slotId: "slot-busy" })).rejects.toMatchObject({ status: 409 });
+  });
+
+  test("submitting DELETE_SLOT creates proposal when valid", async () => {
+    approvalFindMany.mockResolvedValue([]);
+    findUnique.mockResolvedValue({ id: "slot-ok", date: "2026-12-10", startTime: "09:00", endTime: "10:00", _count: { appointments: 0 } });
+    approvalCreate.mockResolvedValue({ id: "prop-del-created" });
+    const res = await submitOperationProposal("staff-1", "DELETE_SLOT", { slotId: "slot-ok" });
+    expect(res).toEqual({ id: "prop-del-created" });
+  });
+
+  test("listOperationApprovals filters for STAFF and deduplicates for ADMIN", async () => {
+    const staffList = [{ id: "prop-1", requesterId: "staff-1" }];
+    approvalFindMany.mockResolvedValue(staffList);
+    const resStaff = await listOperationApprovals({ id: "staff-1", role: "STAFF" });
+    expect(resStaff).toEqual(staffList);
+
+    const adminList = [
+      { id: "del-1", action: "DELETE_SLOT", payload: { slotId: "s-1" } },
+      { id: "del-2", action: "DELETE_SLOT", payload: { slotId: "s-1" } },
+      { id: "create-1", action: "CREATE_SLOT", payload: { date: "2026-12-10", startTime: "09:00", endTime: "10:00" } },
+      { id: "create-2", action: "CREATE_SLOT", payload: { date: "2026-12-10", startTime: "09:30", endTime: "10:30" } },
+    ];
+    approvalFindMany.mockResolvedValue(adminList);
+    const resAdmin = await listOperationApprovals({ id: "admin-1", role: "ADMIN" });
+    expect(resAdmin).toHaveLength(2);
+    expect(resAdmin[0].id).toBe("del-1");
+    expect(resAdmin[1].id).toBe("create-1");
+  });
+
+  test("decideOperationApproval validates decision and rejects invalid decisions", async () => {
+    await expect(decideOperationApproval("prop-1", "admin-1", "INVALID")).rejects.toMatchObject({ status: 400 });
+    approvalFindUnique.mockResolvedValue(null);
+    await expect(decideOperationApproval("prop-none", "admin-1", "APPROVE")).rejects.toMatchObject({ status: 404 });
+  });
+
+  test("decideOperationApproval approves CREATE_SLOT and auto-rejects conflicting pending proposals", async () => {
+    findMany.mockResolvedValue([]);
+    const proposal = { id: "p-create", action: "CREATE_SLOT", payload: { date: "2026-12-15", startTime: "09:00", endTime: "10:00", maxCapacity: 5 } };
+    approvalFindUnique
+      .mockResolvedValueOnce(proposal)
+      .mockResolvedValueOnce({ ...proposal, status: "APPROVED" });
+    approvalUpdateMany.mockResolvedValue({ count: 1 });
+    create.mockResolvedValue({ id: "slot-created" });
+    approvalFindMany.mockResolvedValue([
+      { id: "p-conflicting", action: "CREATE_SLOT", payload: { date: "2026-12-15", startTime: "09:30", endTime: "10:30" } },
+    ]);
+
+    const res = await decideOperationApproval("p-create", "admin-1", "APPROVE");
+    expect(res.status).toBe("APPROVED");
+    expect(create).toHaveBeenCalled();
+  });
+
+  test("decideOperationApproval approves DELETE_SLOT and auto-resolves duplicate pending deletion proposals", async () => {
+    findUnique.mockResolvedValue({ id: "s-10", _count: { appointments: 0 } });
+    const proposal = { id: "p-del", action: "DELETE_SLOT", payload: { slotId: "s-10" } };
+    approvalFindUnique
+      .mockResolvedValueOnce(proposal)
+      .mockResolvedValueOnce({ ...proposal, status: "APPROVED" });
+    approvalUpdateMany.mockResolvedValue({ count: 1 });
+    deleteSlot.mockResolvedValue({ id: "s-10" });
+    approvalFindMany.mockResolvedValue([
+      { id: "p-del-dup", action: "DELETE_SLOT", payload: { slotId: "s-10" } },
+    ]);
+
+    const res = await decideOperationApproval("p-del", "admin-1", "APPROVE");
+    expect(res.status).toBe("APPROVED");
+    expect(deleteSlot).toHaveBeenCalled();
+  });
+
+  test("decideOperationApproval rejects a proposal with a review note", async () => {
+    const proposal = { id: "p-rej", action: "CREATE_SLOT", payload: {} };
+    approvalFindUnique
+      .mockResolvedValueOnce(proposal)
+      .mockResolvedValueOnce({ ...proposal, status: "REJECTED", decisionNote: "Denied" });
+    approvalUpdateMany.mockResolvedValue({ count: 1 });
+
+    const res = await decideOperationApproval("p-rej", "admin-1", "REJECT", "Denied");
+    expect(res.status).toBe("REJECTED");
+    expect(create).not.toHaveBeenCalled();
   });
 });

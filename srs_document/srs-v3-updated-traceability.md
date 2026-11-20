@@ -247,7 +247,7 @@ The following test specifications demonstrate rigorous test documentation follow
 
 ## 6. Verification and Sign-Off
 
-This document constitutes the official updated Software Requirements Specification (v3.0) for `SE-jackfruit`. All 42 functional requirements, 22 non-functional requirements, and 83 test cases have been cross-verified against the active codebase, CI/CD pipeline, and deployed cloud environment.
+This document constitutes the official updated Software Requirements Specification (v3.0) for `SE-jackfruit`. All 42 functional requirements, 22 non-functional requirements, and 22 automated test suites (236 unit, component, and integration tests across 83 core test cases) have been cross-verified against the active codebase, CI/CD pipeline, and deployed cloud environment. Complete test suite specifications and pass statistics are detailed in [test_plan-v6-updated.md](../testplan_document/test_plan-v6-updated.md).
 
 * **Approved by:** Project Lead (Tusti S), Architecture Lead (Vedanth Kiran), QA Lead (Pavithra Reddy), Security/Backend Lead (Vrushant K P)  
 * **Date:** 20 November 2026  

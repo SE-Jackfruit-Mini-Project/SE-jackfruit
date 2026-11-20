@@ -10,10 +10,12 @@ import { jest } from "@jest/globals";
 
 const userFindMany = jest.fn();
 const userFindFirst = jest.fn();
+const userFindUnique = jest.fn();
 const donationFindMany = jest.fn();
 const donationFindFirst = jest.fn();
 const donationCreate = jest.fn();
 const appointmentFindMany = jest.fn();
+const appointmentFindFirst = jest.fn();
 const appointmentUpdate = jest.fn();
 const inventoryUpsert = jest.fn();
 const inventoryUpdate = jest.fn();
@@ -27,9 +29,16 @@ jest.unstable_mockModule(
     prisma: {
       user: {
         findMany: userFindMany,
+        findFirst: userFindFirst,
+        findUnique: userFindUnique,
       },
       donation: {
         findMany: donationFindMany,
+        findFirst: donationFindFirst,
+      },
+      appointment: {
+        findFirst: appointmentFindFirst,
+        findMany: appointmentFindMany,
       },
       $transaction: transaction,
     },
@@ -57,9 +66,11 @@ const {
 beforeEach(() => {
   userFindMany.mockReset();
   userFindFirst.mockReset();
+  userFindUnique.mockReset().mockResolvedValue(null);
   donationFindMany.mockReset();
   donationFindFirst.mockReset().mockResolvedValue(null);
   donationCreate.mockReset();
+  appointmentFindFirst.mockReset().mockResolvedValue(null);
   appointmentFindMany.mockReset().mockResolvedValue([{ id: "appointment-1", status: "SCHEDULED", slot: { date: "2026-01-15" } }]);
   appointmentUpdate.mockReset().mockResolvedValue({ count: 1 });
   inventoryUpsert.mockReset();
@@ -88,6 +99,8 @@ describe("US-011 record completed blood donation", () => {
     ];
 
     userFindMany.mockResolvedValue(donors);
+    appointmentFindFirst.mockResolvedValue({ id: "app-1", slot: { date: "2026-01-15" } });
+    donationFindFirst.mockResolvedValue(null);
 
     await expect(getRegisteredDonors()).resolves.toEqual(donors);
 
@@ -105,6 +118,43 @@ describe("US-011 record completed blood donation", () => {
         bloodGroup: true,
       },
     });
+  });
+
+  test("getRegisteredDonors filters out donors without active scheduled appointment", async () => {
+    userFindMany.mockResolvedValue([{ id: "donor-1", fullName: "Test" }]);
+    appointmentFindFirst.mockResolvedValue(null);
+    const result = await getRegisteredDonors();
+    expect(result).toEqual([]);
+  });
+
+  test("getRegisteredDonors filters out donors when blood already drawn on slot date", async () => {
+    userFindMany.mockResolvedValue([{ id: "donor-1", fullName: "Test" }]);
+    appointmentFindFirst.mockResolvedValue({ id: "app-1", slot: { date: "2026-01-15" } });
+    donationFindFirst.mockResolvedValueOnce({ id: "don-existing" });
+    const result = await getRegisteredDonors();
+    expect(result).toEqual([]);
+  });
+
+  test("getRegisteredDonors filters out donors with active gender cooldown and includes eligible donors", async () => {
+    userFindMany.mockResolvedValue([
+      { id: "donor-female", fullName: "Female Donor" },
+      { id: "donor-eligible", fullName: "Eligible Donor" },
+    ]);
+    appointmentFindFirst
+      .mockResolvedValueOnce({ id: "app-1", slot: { date: "2026-01-15" } })
+      .mockResolvedValueOnce({ id: "app-2", slot: { date: "2026-01-15" } });
+    userFindUnique
+      .mockResolvedValueOnce({ gender: "FEMALE" })
+      .mockResolvedValueOnce({ gender: "MALE" });
+    donationFindFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ donationDate: new Date(Date.now() - 30 * 24 * 3600 * 1000) })
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+
+    const result = await getRegisteredDonors();
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("donor-eligible");
   });
 
   test("returns recent donations with donor and recorder details", async () => {
