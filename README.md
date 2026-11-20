@@ -1,6 +1,11 @@
 # SE-Jackfruit: Blood Donation Management System
 
-A Software Engineering mini-project built by the JACKFRUIT team. The application supports donor registration and profiles, appointment booking and management, donation records, blood inventory, hospital blood requests, and role-based access.
+A Software Engineering mini-project built by the JACKFRUIT team (PES University, UE23CS341A). The application supports donor registration and profiles, appointment booking and management, donation records, blood inventory, hospital blood requests, and role-based access.
+
+🌐 **Live Production Application:** [https://se-jackfruit.onrender.com](https://se-jackfruit.onrender.com)  
+🚀 **CI/CD Pipeline:** Fully Automated via GitHub Actions (`.github/workflows/cicd.yml`)  
+🛡️ **Security & Quality Gate:** SonarQube Cloud SAST (0 Vulnerabilities, 0 Bugs, >80% Code Coverage)  
+📋 **Documentation:** [Updated SRS v3.0 with RTM](srs_document/srs-v3-updated-traceability.md) | [Software Test Plan v6.0](testplan_document/test_plan-v6-updated.md)
 
 ## Current project status
 
@@ -140,20 +145,22 @@ Run from the project root unless noted:
 
 | Command | What it runs |
 |---|---|
-| `npm test` | Backend unit tests, epic component tests, backend integration tests, then frontend story unit tests and workflow regressions. |
-| `npm run test:backend` | Backend unit tests in `tests/unit-testing/backend`. |
+| `npm test` | All 22 test suites (236 tests): backend unit, component, integration, and frontend story tests. |
+| `npm run test:backend` | Backend unit tests across all user stories in `tests/unit-testing/backend`. |
+| `npm --prefix backend run test:coverage` | Runs unit, component, and integration suites with Jest coverage engine, outputting terminal metrics and `backend/coverage/lcov.info` for SonarCloud. |
 | `npm run test:component` | Four epic-level backend component suites in `tests/component-testing`. |
 | `npm run test:integration` | Backend integration/system suites in `tests/integration-testing/backend`. |
-| `npm run test:frontend` | Frontend story tests in `tests/unit-testing/frontend` and existing workflow regressions in `frontend/tests/regression`. |
-| `npm --prefix frontend run build` | Creates the frontend production build in `frontend/dist`. |
+| `npm run test:frontend` | Frontend eligibility story tests in `tests/unit-testing/frontend`. |
+| `npm --prefix frontend run build` | Creates the optimized frontend production build in `frontend/dist`. |
 
-Unit testing uses one suite file per user story: 16 backend suites and frontend US-008, for 17 story suites. Session-refresh cases are part of US-002. Cross-story frontend workflow regressions are kept separately and remain included in the test command.
+Unit testing uses one suite file per user story (16 backend suites and frontend US-008, for 17 story suites), accompanied by 4 epic component suites and 2 system integration suites (totaling 22 automated suites with 236 tests, 100% passing). Operational approvals (`OperationApproval`) for appointment slots and stock adjustments are covered directly within their respective user stories (`US-009`, `US-011`, `US-005`, `US-014`).
 
-The epic component suites exercise the API routes and role-specific behavior with mocked services. They verify that staff slot and inventory changes remain pending proposals while administrators can apply changes or review proposals. The integration suite covers the end-to-end persistence and approval behavior. Backend and frontend dependencies must be installed first. Most automated tests use mocks or synthetic data; do not point test runs at a production database. When the Prisma schema changes, regenerate Prisma Client and run `npm --prefix backend run db:push` against your local database before starting the application. Do not reset a database containing data you want to keep.
+### CI/CD Pipeline
 
-### CI/CD
-
-The GitHub Actions workflow at `.github/workflows/cicd.yml` runs on pushes and pull requests targeting `main`. It installs backend and frontend dependencies, runs backend unit, component, and integration tests, runs frontend tests and a production build, and automatically triggers production deployment to Render when merged to `main`. SonarCloud is an additional check only when its repository integration and workflow configuration are active.
+The GitHub Actions workflow at `.github/workflows/cicd.yml` automates verification, security, and continuous delivery:
+1. **Continuous Integration (CI):** Installs dependencies with `npm ci`, runs Prisma database generation, executes the full test suite with coverage (`npm run test:coverage`), runs frontend Vitest tests, and validates the Vite production build.
+2. **Static Analysis & SAST:** Scans the codebase using official `SonarSource/sonarcloud-github-action`, enforcing 0 bugs, 0 vulnerabilities, session cookie isolation (Rule S8441), and code coverage compliance.
+3. **Continuous Deployment (CD):** On pushes to `main`, automatically triggers Render's production deploy hook and publishes the live deployment URL directly to the GitHub Environment (`Production`) and `$GITHUB_STEP_SUMMARY`.
 
 ## Repository layout
 
@@ -161,14 +168,21 @@ The GitHub Actions workflow at `.github/workflows/cicd.yml` runs on pushes and p
 backend/                 Express API, Prisma schema, and backend package scripts
 frontend/                React/Vite application and frontend package scripts
 deviations.md            Implementation additions and deviations from the frozen SRS
+srs_document/            SRS v1-v2 baseline (.docx) and updated SRS v3.0 with RTM (.md)
+testplan_document/       Test Plan v1-v5 baseline (.docx) and updated STP v6.0 (.md)
 tests/
-  unit-testing/          Backend and frontend unit suites
+  unit-testing/          Backend and frontend unit suites (one suite per user story)
   component-testing/     Four epic-level backend component suites
   integration-testing/  Backend workflow and inventory integration suites
-.github/workflows/       GitHub Actions CI/CD configuration
+.github/workflows/       GitHub Actions CI/CD configuration (cicd.yml)
+sonar-project.properties SonarCloud SAST and coverage configuration
 ```
 
-Frozen SRS/SAD Word copies are in srs_document/ and sad_document/. Historical Word test plans remain in testplan_document/; current regression additions are in test_plan-v5.docx. Record implementation differences in deviations.md without rewriting frozen baselines. The local review supplement is docs_own_reference/code_review/STATIC_CODE_REVIEW_REPORT-v2.md.
+Official specifications and traceability artifacts:
+- **Updated SRS with Full RTM:** [`srs_document/srs-v3-updated-traceability.md`](srs_document/srs-v3-updated-traceability.md)
+- **Updated Software Test Plan:** [`testplan_document/test_plan-v6-updated.md`](testplan_document/test_plan-v6-updated.md)
+- **Implementation Deviations Record:** [`deviations.md`](deviations.md)
+- **Static Code Review & Security Report:** [`docs_own_reference/code_review/STATIC_CODE_REVIEW_REPORT-v2.md`](docs_own_reference/code_review/STATIC_CODE_REVIEW_REPORT-v2.md)
 
 ## Development workflow
 
