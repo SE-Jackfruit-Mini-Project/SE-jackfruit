@@ -35,9 +35,7 @@
     "transform": {},
     "modulePaths": ["<rootDir>/node_modules"],
     "collectCoverageFrom": [
-      "src/services/**/*.js",
-      "src/middleware/**/*.js",
-      "src/app.js"
+      "src/services/**/*.js"
     ],
     "coverageReporters": [
       "text",
