@@ -294,6 +294,7 @@ describe("US-009 manage appointment slots", () => {
   });
 
   test("decideOperationApproval approves CREATE_SLOT and auto-rejects conflicting pending proposals", async () => {
+    findMany.mockResolvedValue([]);
     const proposal = { id: "p-create", action: "CREATE_SLOT", payload: { date: "2026-12-15", startTime: "09:00", endTime: "10:00", maxCapacity: 5 } };
     approvalFindUnique
       .mockResolvedValueOnce(proposal)
@@ -310,6 +311,7 @@ describe("US-009 manage appointment slots", () => {
   });
 
   test("decideOperationApproval approves DELETE_SLOT and auto-resolves duplicate pending deletion proposals", async () => {
+    findUnique.mockResolvedValue({ id: "s-10", _count: { appointments: 0 } });
     const proposal = { id: "p-del", action: "DELETE_SLOT", payload: { slotId: "s-10" } };
     approvalFindUnique
       .mockResolvedValueOnce(proposal)
