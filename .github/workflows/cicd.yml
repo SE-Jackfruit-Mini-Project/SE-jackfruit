@@ -13,22 +13,29 @@ on:
 jobs:
   # Backend CI job: Sets up Node 22 and runs unit, component, and system integration tests
   backend:
-    name: Backend tests
+    name: Backend tests & Coverage
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - run: npm ci --ignore-scripts
       - run: npm rebuild @prisma/engines
       - run: npm run db:generate
-      - run: npm test
+      - run: npm run test:coverage
       - run: npm run test:component
       - run: npm run test:integration
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
   # Frontend CI job: Sets up Node 22, installs dependencies, runs Vitest unit tests, and validates Vite production build
   frontend:
     name: Frontend tests and build
